@@ -13,11 +13,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.IO;
 
 namespace Task_Server
 {
     internal class FileIO
     {
-
+        public async Task WriteToFileAsync(string path, string content)
+        {
+            await File.AppendAllTextAsync(path, content);
+        }
     }
 }

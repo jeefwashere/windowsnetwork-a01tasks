@@ -13,38 +13,40 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
+using Task_Server;
 
 namespace A01___TASKS
 {
     internal class MessageProcessor
     {
-        public async Task<bool> WriteMessageToFile(string message, string filePath, string logName, int maxFileSize, CancellationToken cts)
+        public async Task<bool> CheckFile(string message, string filePath, string logFileName, int maxFileSize)
         {
-            FileInfo fileInfo = new FileInfo(filePath);
-            bool sizeReachedFlag = false;
+            FileIO fileIO = new FileIO();
+
+            bool fileSizeReached = false;
 
             if (string.IsNullOrEmpty(filePath))
             {
                 filePath = "output.txt";
             }
 
-            if (string.IsNullOrEmpty(logName))
+            if (string.IsNullOrEmpty(logFileName))
             {
-                logName = "logger.log";
+                logFileName = "logger.log";
             }
 
-            while (!sizeReachedFlag)
+            FileInfo fileInfo = new FileInfo(filePath);
+            if (fileInfo.Length >= maxFileSize)
             {
-                if (fileInfo.Length >= maxFileSize)
-                {
-                    sizeReachedFlag = true;
-                }
-
-                await File.WriteAllTextAsync(fileInfo.FullName, message, cts);
-                // logger
+                fileSizeReached = true;
+            }
+            else
+            {
+                await fileIO.WriteToFileAsync(fileInfo.FullName, message);
+                await Logger.WriteLoggerAsync(message, logFileName);
             }
 
-            return sizeReachedFlag;
+            return fileSizeReached;
         }
     }
 }
