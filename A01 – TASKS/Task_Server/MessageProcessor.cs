@@ -17,5 +17,6 @@ namespace A01___TASKS
 {
     internal class MessageProcessor
     {
+        
     }
 }
