@@ -43,7 +43,7 @@ namespace A01___TASKS
             else
             {
                 await fileIO.WriteToFileAsync(fileInfo.FullName, message);
-                await Logger.WriteLoggerAsync(message, logFileName);
+                await Logger.WriteLoggerAsync($"Message Received: {message}", logFileName);
             }
 
             return fileSizeReached;

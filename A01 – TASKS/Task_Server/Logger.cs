@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 
 namespace Task_Server
 {
-    internal class Logger
+    public class Logger
     {
         public static async Task WriteLoggerAsync(string logMessage, string logFilePath)
         {
