@@ -98,7 +98,7 @@ namespace Task_Server
             {
                 // Read the client request (only one request per connection)
                 count = stream.Read(data, 0, data.Length);
-
+                Console.Write("I got this: " + count);
                 if (count > 0)
                 {
                     incomingData = Encoding.ASCII.GetString(data, 0, count);
@@ -108,8 +108,10 @@ namespace Task_Server
                          fileSize = parser.ParseFileSizeMessage(incomingData);
                     } else
                     {
+                        Console.Write("I got this: " + incomingData);
                         // processor.CheckFile(incomingData, validServerFileName, validLoggerName, fileSize);
                     }
+                    response = "ack";
                     if (response.Length > 0)
                     {
                         byte[] respBytes = Encoding.ASCII.GetBytes(response);
