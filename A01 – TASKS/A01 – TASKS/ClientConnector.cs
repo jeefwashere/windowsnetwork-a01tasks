@@ -33,14 +33,18 @@ namespace A01___TASKS
             );
             string ipaddress = ConfigurationManager.AppSettings["Ipaddress"];
             string port = ConfigurationManager.AppSettings["Port"];
+            string sizeDoc = ConfigurationManager.AppSettings["size"];
             Console.WriteLine("ClientCount = " + clientCount);
             Console.WriteLine("MessageLength = " + messageLength);
+            ClientConnector connector = new ClientConnector();
+            connector.ClientConnectorServer(ipaddress, port, sizeDoc);
 
         }
 
 
         public void ClientConnectorServer(string ipAddress, string port, string messageBeenSend)
         {
+
             NetworkStream stream = null;
             IPAddress iPAddress = IPAddress.Parse(ipAddress);
             int portInt = int.Parse(port);
@@ -52,14 +56,21 @@ namespace A01___TASKS
                 client.Connect(iPAddress, portInt);
                 //this was where to create the stream can be write and recipte the message
                 stream = client.GetStream();
-                stream.Write(data, 0, data.Length);
-                byte[] receiveData = new byte[4096];
-                int bytesRead = stream.Read(receiveData, 0, receiveData.Length);
-                string response = Encoding.ASCII.GetString(receiveData, 0, bytesRead);
+                do
+                {
+                    stream.Write(data, 0, data.Length);
+                }
+                while (!receiveMessage(client));
+                {
+                    sendMessage(client, RandomString(12));
+                }
+ 
+ 
+                
             }
-            catch
+            catch (Exception ex)
             {
-
+                Console.WriteLine(ex);
             }
         }
         public void sendMessage(TcpClient client, string messageBeenSend)
@@ -90,7 +101,7 @@ namespace A01___TASKS
  
 
         }
-        public static string RandomString(int length)
+        public string RandomString(int length)
         {
 ;           
             if (length < 0)
