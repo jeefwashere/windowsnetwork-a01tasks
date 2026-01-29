@@ -37,8 +37,10 @@ namespace A01___TASKS
             Console.WriteLine("ClientCount = " + clientCount);
             Console.WriteLine("MessageLength = " + messageLength);
             ClientConnector connector = new ClientConnector();
-            connector.ClientConnectorServer(ipaddress, port, sizeDoc);
-
+            Thread sendThread;
+            sendThread = new Thread(() => ClientConnectorServer(ipaddress, port, sizeDoc));
+            sendThread.IsBackground = true;
+            sendThread.Start();
         }
 
 
@@ -56,13 +58,12 @@ namespace A01___TASKS
                 client.Connect(iPAddress, portInt);
                 //this was where to create the stream can be write and recipte the message
                 stream = client.GetStream();
-                do
-                {
-                    stream.Write(data, 0, data.Length);
-                }
-                while (!receiveMessage(client));
+
+                stream.Write(data, 0, data.Length);
+                while (true)
                 {
                     sendMessage(client, RandomString(12));
+                    Console.WriteLine("Here");
                 }
  
  
