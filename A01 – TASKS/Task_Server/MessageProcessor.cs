@@ -19,7 +19,7 @@ namespace A01___TASKS
 {
     internal class MessageProcessor
     {
-        public async Task<bool> CheckFile(string message, string filePath, string logFileName, int maxFileSize)
+        public async Task<bool> CheckFile(string message, string filePath, string logFileName, double maxFileSize)
         {
             FileIO fileIO = new FileIO();
 
