@@ -14,7 +14,7 @@ namespace Task_Server
             string[] parts = message.Split(":");
             bool valid = false;
 
-            if (parts.Length != 2 && parts[0] != "FILE SIZE")
+            if (parts.Length != 2 && parts[0] != "FILESIZE")
             {
                 response = -1;
                 valid = true;
