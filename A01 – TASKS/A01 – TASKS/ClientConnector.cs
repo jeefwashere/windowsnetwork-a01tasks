@@ -13,7 +13,11 @@ using System.Configuration;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Numerics;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+
 
 namespace A01___TASKS
 {
@@ -46,16 +50,13 @@ namespace A01___TASKS
 
             try
             {
-                // Run multiple tasks that may throw exceptions
+                CancellationTokenSource token = new CancellationTokenSource();
+
                 Task task = Task.WhenAll(
-                    Task.Run(() => clientConnector.SendOnce(client, clientConnector.RandomString(12))),
-                    Task.Run(() => clientConnector.receiveMessage(client))
-
-
-
+                    Task.Run(() => clientConnector.SendLoop(client, token.Token, messageLength)),
+                    Task.Run(() => clientConnector.ReceiveLoop(client, token))
                 );
 
-                // Wait for all tasks to complete (exceptions will be aggregated)
                 task.Wait();
             }
             catch (AggregateException aggEx)
@@ -129,12 +130,33 @@ namespace A01___TASKS
  
 
         }
-        public bool SendOnce(TcpClient client, string msg)
+        public void SendLoop(TcpClient client, CancellationToken token, int messageLength)
         {
             NetworkStream stream = client.GetStream();
-            byte[] data = Encoding.UTF8.GetBytes(msg);
-            stream.Write(data, 0, data.Length);
-            return true; 
+
+            while (!token.IsCancellationRequested)
+            {
+                string msg = RandomString(messageLength);
+                byte[] data = Encoding.UTF8.GetBytes(msg);
+
+                stream.Write(data, 0, data.Length);
+ 
+            }
+        }
+        public void ReceiveLoop(TcpClient client, CancellationTokenSource token)
+        {
+            NetworkStream stream = client.GetStream();//take one stream from the tcp              
+            byte[] buffer = new byte[4096];
+
+            while (!token.IsCancellationRequested)
+            {
+                bool continueReceive = receiveMessage(client);
+                if (continueReceive == false)
+                {
+                    token.Cancel();  
+                    break;
+                }
+            }
         }
         public string RandomString(int length)
         {
