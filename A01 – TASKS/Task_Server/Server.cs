@@ -54,6 +54,8 @@ namespace Task_Server
             }
             validServerFileName = ConfigurationManager.AppSettings["ServerFileName"] ?? string.Empty;
             validLoggerName = ConfigurationManager.AppSettings["LoggerFileName"] ?? string.Empty;
+
+            Console.WriteLine($"[SERVER CONFIG] IP={validIP} PORT={validPort}");
         }
 
 
@@ -61,6 +63,7 @@ namespace Task_Server
         public void ConnectedToClient()
         {
             TcpListener listener = new TcpListener(validIP, validPort);
+            listener.Start();
             while (run) {
                 try
                 {
