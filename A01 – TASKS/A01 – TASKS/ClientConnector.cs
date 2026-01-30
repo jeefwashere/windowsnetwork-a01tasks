@@ -36,13 +36,57 @@ namespace A01___TASKS
             string sizeDoc = ConfigurationManager.AppSettings["size"];
             Console.WriteLine("ClientCount = " + clientCount);
             Console.WriteLine("MessageLength = " + messageLength);
-            ClientConnector connector = new ClientConnector();
-            connector.ClientConnectorServer(ipaddress, port, sizeDoc);
+            ClientConnector clientConnector = new ClientConnector();
+            TcpClient client =clientConnector.ClientConnectorServer(ipaddress, port, sizeDoc);
+            if(client == null)
+            {
+                Console.WriteLine("Failed to connect to server.");
+                return;
+            }
 
+            try
+            {
+                // Run multiple tasks that may throw exceptions
+                Task task = Task.WhenAll(
+                    Task.Run(() => clientConnector.SendOnce(client, clientConnector.RandomString(12))),
+                    Task.Run(() => clientConnector.receiveMessage(client))
+
+
+
+                );
+
+                // Wait for all tasks to complete (exceptions will be aggregated)
+                task.Wait();
+            }
+            catch (AggregateException aggEx)
+            {
+                Console.WriteLine("AggregateException caught. Processing inner exceptions...\n");
+
+                // Handle each exception individually
+                aggEx.Handle(ex =>
+                {
+                    if (ex is ArgumentNullException)
+                    {
+                        Console.WriteLine($"Handled ArgumentNullException: {ex.Message}");
+                        return true; // Mark as handled
+                    }
+                    else if (ex is ArgumentOutOfRangeException)
+                    {
+                        Console.WriteLine($"Handled ArgumentOutOfRangeException: {ex.Message}");
+                        return true;
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Unhandled exception type: {ex.GetType().Name} - {ex.Message}");
+                        return false; // Not handled, will be rethrown
+                    }
+                });
+            }
+ 
         }
 
 
-        public void ClientConnectorServer(string ipAddress, string port, string messageBeenSend)
+        public TcpClient ClientConnectorServer(string ipAddress, string port, string messageBeenSend)
         {
 
             NetworkStream stream = null;
@@ -56,34 +100,18 @@ namespace A01___TASKS
                 client.Connect(iPAddress, portInt);
                 //this was where to create the stream can be write and recipte the message
                 stream = client.GetStream();
-                do
-                {
-                    stream.Write(data, 0, data.Length);
-                }
-                while (!receiveMessage(client));
-                {
-                    sendMessage(client, RandomString(12));
-                }
- 
- 
-                
+                return client;
+
+
+
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex);
             }
+            return null;
         }
-        public void sendMessage(TcpClient client, string messageBeenSend)
-        {
-            NetworkStream stream = null;
-            byte[] data = Encoding.UTF8.GetBytes(messageBeenSend);
-            stream = client.GetStream();
-            stream.Write(data, 0, data.Length);
-            
-            if (receiveMessage(client) == false)
-            { return; }
-            else{ stream.Write(data, 0, data.Length); };
-        }
+
         public bool receiveMessage(TcpClient client)
         {
             bool continueReceive = true;
@@ -100,6 +128,13 @@ namespace A01___TASKS
 
  
 
+        }
+        public bool SendOnce(TcpClient client, string msg)
+        {
+            NetworkStream stream = client.GetStream();
+            byte[] data = Encoding.UTF8.GetBytes(msg);
+            stream.Write(data, 0, data.Length);
+            return true; 
         }
         public string RandomString(int length)
         {
