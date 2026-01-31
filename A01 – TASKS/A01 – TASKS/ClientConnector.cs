@@ -82,7 +82,6 @@ namespace A01___TASKS
                     }
                 });
             }
- 
         }
 
 
@@ -101,9 +100,6 @@ namespace A01___TASKS
                 //this was where to create the stream can be write and recipte the message
                 stream = client.GetStream();
                 return client;
-
-
-
             }
             catch (Exception ex)
             {

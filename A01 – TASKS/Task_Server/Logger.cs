@@ -19,6 +19,8 @@ namespace Task_Server
     {
         public static async Task WriteLoggerAsync(string logMessage, string logFilePath)
         {
+            FileIO fileIo = new FileIO();
+
             if (string.IsNullOrEmpty(logFilePath))
             {
                 logFilePath = "logger.log";
@@ -26,7 +28,7 @@ namespace Task_Server
 
             string fullMessage = $"[{DateTime.UtcNow}] | {logMessage}";
 
-            await File.AppendAllTextAsync(logFilePath, fullMessage);
+            await fileIo.WriteToFileAsync(logFilePath, fullMessage);
         }
     }
 }
