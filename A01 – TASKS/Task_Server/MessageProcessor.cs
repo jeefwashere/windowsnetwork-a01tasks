@@ -14,9 +14,9 @@ namespace A01___TASKS
 {
     internal class MessageProcessor
     {
-        private static readonly object fileLocker = new object();
+        private static SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1); // Found this on: https://stackoverflow.com/questions/20084695/lock-and-async-method-in-c-sharp
 
-        public Task<bool> CheckFile(string message, string filePath, string logFileName, double maxFileSize)
+        public async Task<bool> CheckFile(string message, string filePath, string logFileName, long maxFileSize)
         {
             FileIO fileIO = new FileIO();
             bool fileSizeReached = false;
@@ -31,7 +31,8 @@ namespace A01___TASKS
                 logFileName = "logger.log";
             }
 
-            lock (fileLocker)
+            await semaphoreSlim.WaitAsync(); // Explored further in the referenced link in the stackoverflow thread: https://blog.cdemi.io/async-waiting-inside-c-sharp-locks/
+            try
             {
                 if (!File.Exists(filePath))
                 {
@@ -55,12 +56,20 @@ namespace A01___TASKS
                 }
                 else
                 {
-                    fileIO.WriteToFileAsync(fileInfo.FullName, message).GetAwaiter().GetResult();
-                    Logger.WriteLoggerAsync("Message Received: " + message, logFileName).GetAwaiter().GetResult();
+                    await fileIO.WriteToFileAsync(fileInfo.FullName, message);
+                    await Logger.WriteLoggerAsync("Message Received: " + message, logFileName);
                 }
             }
+            catch (Exception ex)
+            {
+                // log it
+            }
+            finally
+            {
+                semaphoreSlim.Release();
+            }
 
-            return Task.FromResult(fileSizeReached);
+            return fileSizeReached;
         }
     }
 }
