@@ -63,6 +63,7 @@ namespace Task_Server
                     TcpClient client = await listener.AcceptTcpClientAsync(cancellationToken);
                     Console.WriteLine("[SERVER] Client connected.");
 
+                    Console.WriteLine("Pre connection");
                     _ = Task.Run(() => ProcessRequest(client, cancellationToken), cancellationToken);
                 }
                 catch (SocketException ex)
@@ -98,7 +99,7 @@ namespace Task_Server
                     // STOP
                     if (incomingData.StartsWith("STOP", StringComparison.OrdinalIgnoreCase))
                     {
-                        await SendResponseAsync(stream, "ack", cancellationToken);
+                        await SendResponseAsync(stream, "ack\n", cancellationToken);
                         break;
                     }
 
@@ -106,12 +107,12 @@ namespace Task_Server
                     if (incomingData.StartsWith("FILESIZE", StringComparison.OrdinalIgnoreCase))
                     {
                         fileSize = parser.ParseFileSizeMessage(incomingData);
-                        if (fileSize <= 0)
-                        {
-                            await SendResponseAsync(stream, "err", cancellationToken);
-                            continue;
-                        } 
-                        await SendResponseAsync(stream, "ack", cancellationToken);
+                        //if (fileSize <= 0)
+                        //{
+                        //    await SendResponseAsync(stream, "err", cancellationToken);
+                        //    continue;
+                        //} 
+                        await SendResponseAsync(stream, "ack\n", cancellationToken);
                         continue;
                     }
 
@@ -121,12 +122,12 @@ namespace Task_Server
 
                     if (isFull)
                     {
-                        await SendResponseAsync(stream, "FULL", cancellationToken);
+                        await SendResponseAsync(stream, "FULL\n", cancellationToken);
                         break; // end connection when full
                     }
                     else
                     {
-                        await SendResponseAsync(stream, "ack", cancellationToken);
+                        await SendResponseAsync(stream, "ack\n", cancellationToken);
                     }
                 }
             }
@@ -147,10 +148,7 @@ namespace Task_Server
 
         private static async Task SendResponseAsync(NetworkStream stream, string response, CancellationToken token)
         {
-            if (!response.EndsWith("\n"))
-            {
-                response += "\n";
-            };
+            Console.WriteLine("You're inside Response ACK");
             byte[] responseBytes = Encoding.UTF8.GetBytes(response);
             await stream.WriteAsync(responseBytes, 0, responseBytes.Length, token);
         }

@@ -21,6 +21,13 @@ namespace Task_Server
         static async Task Main(string[] args)
         {
             using CancellationTokenSource cts = new CancellationTokenSource();
+
+            Console.CancelKeyPress += (sender, e) =>
+            {
+                e.Cancel = true;
+                cts.Cancel();
+            };
+
             ServerAsync sr = new ServerAsync();
             await sr.RunAsync(cts.Token);
         }

@@ -47,6 +47,9 @@ namespace A01___TASKS
                 {
                     break; // got at least one full message
                 }
+
+                Console.WriteLine($"RESULT: {result}");
+                Console.WriteLine($"RECEVIED: {bytesRead}");
             }
 
 

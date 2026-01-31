@@ -22,11 +22,10 @@ namespace A01___TASKS
         public async Task RunAsync()
         {
             int messageLength = int.Parse(ConfigurationManager.AppSettings["MessageLength"] ?? "12");
-
             string ipAddress = ConfigurationManager.AppSettings["Ipaddress"] ?? "127.0.0.1";
             string port = ConfigurationManager.AppSettings["Port"] ?? "14000";
             string sizeDoc = ConfigurationManager.AppSettings["size"] ?? "0";
-            string cilentNumberString=ConfigurationManager.AppSettings["ClientNumber"] ?? "3";
+            string cilentNumberString=ConfigurationManager.AppSettings["ClientCount"] ?? "50";
             int cilentNumber = int.Parse(cilentNumberString);
             //   One client per instance
             
