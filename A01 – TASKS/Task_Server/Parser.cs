@@ -1,37 +1,44 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Task_Server
 {
     internal class Parser
     {
-        public double ParseFileSizeMessage(string message)
+        public long ParseFileSizeMessage(string incomingData)
         {
-            double response = 0.00;
-            string[] parts = message.Split(":");
-            bool valid = false;
+            long fileSize = 0;
+            string[] parts = incomingData.Split(
+                            new char[] { ' ', ':', '=' },
+                            StringSplitOptions.RemoveEmptyEntries
+                        );
 
-            if (parts.Length != 2 && parts[0] != "FILESIZE")
+            if (parts.Length == 2)
             {
-                response = -1;
-                valid = true;
-            }
+                long parsedSize;
 
-            if (valid)
-            {
-                if (!double.TryParse(parts[1], out double fileSize))
+                if (long.TryParse(parts[1], out parsedSize))
                 {
-                    response = -1.00;
-                    valid = false;
+                    fileSize = parsedSize;
+                    Console.WriteLine("[SERVER] Parsed fileSize = " + fileSize);
                 }
-
-                response = fileSize;
+                else
+                {
+                    Console.WriteLine("[SERVER] FILESIZE parse failed: " + incomingData);
+                    fileSize = -1;
+                }
+            }
+            else
+            {
+                Console.WriteLine("[SERVER] FILESIZE format invalid: " + incomingData);
             }
 
-            return response;
+            return fileSize;
         }
     }
 }
