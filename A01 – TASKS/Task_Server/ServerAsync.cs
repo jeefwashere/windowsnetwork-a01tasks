@@ -21,6 +21,29 @@ namespace Task_Server
         Parser parser = new Parser();
         MessageProcessor processor = new MessageProcessor();
 
+        public async Task GetClientConnection()
+        {
+            TcpListener listener = new TcpListener(validIP, validPort);
+            listener.Start();
+            while (run)
+            {
+                try
+                {
+                    //Create a listener client
+                    TcpClient client = await listener.AcceptTcpClientAsync();
+                    await ProcessRequest(client);
+                }
+                catch (SocketException ex)
+                {
+                    //log
+                }
+                catch (Exception ex)
+                {
+                    //log
+                }
+            }
+        }
+
         public async Task ProcessRequest(TcpClient client)
         {
             NetworkStream stream = client.GetStream();
