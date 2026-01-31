@@ -22,7 +22,7 @@ namespace A01___TASKS
     {
 
 
-        static void Main(string[] args)
+        public void RunAsync()
         {
             int clientCount = int.Parse(
                 ConfigurationManager.AppSettings["ClientCount"]
@@ -48,7 +48,7 @@ namespace A01___TASKS
             {
                 // Run multiple tasks that may throw exceptions
                 Task task = Task.WhenAll(
-                    Task.Run(() => clientConnector.SendOnce(client, clientConnector.RandomString(12))),
+                    Task.Run(() => clientConnector.SendOnce(client, $"FILESIZE {sizeDoc}")),
                     Task.Run(() => clientConnector.receiveMessage(client))
 
 

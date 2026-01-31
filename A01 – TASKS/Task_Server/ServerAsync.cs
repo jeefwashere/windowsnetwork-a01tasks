@@ -109,7 +109,7 @@ namespace Task_Server
                     else
                     {
                         await processor.CheckFile(incomingData, validServerFileName, validLoggerName, fileSize);
-
+                        Console.Write("I got this: " + incomingData);
                     }
                     response = "ack";
                     if (response.Length > 0)

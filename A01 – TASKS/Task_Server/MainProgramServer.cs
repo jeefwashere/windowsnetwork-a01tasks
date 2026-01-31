@@ -17,10 +17,12 @@ namespace Task_Server
 {
     internal class MainProgramServer
     {
-        static void Main(string[] args)
+        
+        static async Task Main(string[] args)
         {
-            Server sr = new Server();
-            sr.Run();
+            using CancellationTokenSource cts = new CancellationTokenSource();
+            ServerAsync server = new ServerAsync();
+            await server.RunAsync(cts.Token);
         }
     }
 }
