@@ -78,7 +78,7 @@ namespace Task_Server
 
         public async Task ProcessRequest(TcpClient client, CancellationToken cancellationToken)
         {
-            double fileSize = 0.0;
+            long fileSize = 0;
             NetworkStream stream = client.GetStream();
             byte[] data = new byte[4096];
 
@@ -105,31 +105,12 @@ namespace Task_Server
                     // FILESIZE
                     if (incomingData.StartsWith("FILESIZE", StringComparison.OrdinalIgnoreCase))
                     {
-                        string[] parts = incomingData.Split(
-                            new char[] { ' ', ':', '=' },
-                            StringSplitOptions.RemoveEmptyEntries
-                        );
-
-                        if (parts.Length >= 2)
+                        fileSize = parser.ParseFileSizeMessage(incomingData);
+                        if (fileSize <= 0)
                         {
-                            double parsedSize;
-                            bool ok = double.TryParse(parts[1], out parsedSize);
-
-                            if (ok)
-                            {
-                                fileSize = parsedSize;
-                                Console.WriteLine("[SERVER] Parsed fileSize = " + fileSize);
-                            }
-                            else
-                            {
-                                Console.WriteLine("[SERVER] FILESIZE parse failed: " + incomingData);
-                            }
-                        }
-                        else
-                        {
-                            Console.WriteLine("[SERVER] FILESIZE format invalid: " + incomingData);
-                        }
-
+                            await SendResponseAsync(stream, "err", cancellationToken);
+                            continue;
+                        } 
                         await SendResponseAsync(stream, "ack", cancellationToken);
                         continue;
                     }
