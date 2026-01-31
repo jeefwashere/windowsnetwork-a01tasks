@@ -70,15 +70,16 @@ namespace Task_Server
                 {
                     //Create a listener client
                     TcpClient client = await listener.AcceptTcpClientAsync(cancellationToken);
-                    await ProcessRequest(client, cancellationToken); // Check if concurrency works
+                    Console.WriteLine("[SERVER] Client connected."); 
+                    _ = Task.Run(() => ProcessRequest(client, cancellationToken), cancellationToken); // referenced this maybe
                 }
                 catch (SocketException ex)
                 {
-                    //log
+                    Console.WriteLine("[SERVER] Socket Exception: " + ex);
                 }
                 catch (Exception ex)
                 {
-                    //log
+                    Console.WriteLine("[SERVER] Accept error: " + ex);
                 }
             }
         }
@@ -87,57 +88,94 @@ namespace Task_Server
         {
             double fileSize = 0.0;
             NetworkStream stream = client.GetStream();
-
-            // Data buffer
-            byte[] data = new byte[1024];
-            string incomingData = "";
-            string response = "";
-            int count = 0;
+            byte[] data = new byte[4096];
 
             try
             {
-                count = await stream.ReadAsync(data, 0, data.Length, cancellationToken);
-                if (count > 0)
+                while (!cancellationToken.IsCancellationRequested)
                 {
-                    incomingData = Encoding.ASCII.GetString(data, 0, count);
-                    //Logger.Log("Received data: " + incomingData);
+                    int count = await stream.ReadAsync(data, 0, data.Length, cancellationToken);
 
-                    if (incomingData.StartsWith("FILESIZE"))
-                    {
-                        fileSize = parser.ParseFileSizeMessage(incomingData);
-                    }
-                    else
-                    {
-                        await processor.CheckFile(incomingData, validServerFileName, validLoggerName, fileSize);
-                        Console.Write("I got this: " + incomingData);
-                    }
-                    response = "ack";
-                    if (response.Length > 0)
-                    {
-                        byte[] responseBytes = Encoding.ASCII.GetBytes(response);
-                        await stream.WriteAsync(responseBytes, 0, responseBytes.Length, cancellationToken);
+                    // client disconnected
+                    if (count == 0)
+                        break;
 
-                        //Logger.Log($"Response sent: {response}");
+                    string incomingData = Encoding.UTF8.GetString(data, 0, count);
+
+                    // optional stop command (ends this client connection)
+                    if (incomingData.StartsWith("STOP", StringComparison.OrdinalIgnoreCase))
+                    {
+                        await SendAckAsync(stream, cancellationToken);
+                        break;
                     }
+                    // Handle STOP command
+                    if (incomingData.StartsWith("STOP", StringComparison.OrdinalIgnoreCase))
+                    {
+                        await SendAckAsync(stream, cancellationToken);
+                        break;
+                    }
+
+                    // ✅ SAFE FILESIZE parsing (PUT THIS HERE)
+                    if (incomingData.StartsWith("FILESIZE", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string[] parts = incomingData.Split(
+                            new char[] { ' ', ':', '=' },
+                            StringSplitOptions.RemoveEmptyEntries
+                        );
+
+                        if (parts.Length >= 2)
+                        {
+                            double parsedSize;
+                            bool ok = double.TryParse(parts[1], out parsedSize);
+
+                            if (ok)
+                            {
+                                fileSize = parsedSize;
+                                Console.WriteLine("[SERVER] Parsed fileSize = " + fileSize);
+                            }
+                            else
+                            {
+                                Console.WriteLine("[SERVER] FILESIZE parse failed: " + incomingData);
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("[SERVER] FILESIZE format invalid: " + incomingData);
+                        }
+
+                        await SendAckAsync(stream, cancellationToken);
+                        continue;   
+                    }
+
+                    // Handle normal data
+                    await processor.CheckFile(incomingData, validServerFileName, validLoggerName, fileSize);
+                    Console.WriteLine("I got this: " + incomingData);
+
+                    await SendAckAsync(stream, cancellationToken);
+
+
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                // expected on shutdown
             }
             catch (Exception ex)
             {
-                //Logger.Log($"Error in ProcessRequest: {ex}");
+                Console.WriteLine("[SERVER] Error " + ex);
             }
             finally
             {
-                // Cleanup
-                if (stream != null)
-                {
-                    stream.Close();
-                }
-
-                if (client != null)
-                {
-                    client.Close();
-                }
+                stream.Close();
+                client.Close();
             }
         }
+
+        private static async Task SendAckAsync(NetworkStream stream, CancellationToken token)
+        {
+            byte[] responseBytes = Encoding.UTF8.GetBytes("ack");
+            await stream.WriteAsync(responseBytes, 0, responseBytes.Length, token);
+        }
+
     }
 }

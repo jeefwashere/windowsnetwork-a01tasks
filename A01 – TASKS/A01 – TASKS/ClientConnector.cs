@@ -1,154 +1,126 @@
 ﻿//
 // FILE               : ClientConnector.cs
 // PROJECT            : A01 - TASKS
-// PROGRAMMER		  : Josiah Williams, Ricardo Gao, Jeff David Tieng
+// PROGRAMMER         : Josiah Williams, Ricardo Gao, Jeff David Tieng
 // FIRST VERSION      : 2025-01-28
-// DESCRIPTION        : This file is where the client establish a connection to the server
-// 
-// Name               : Client            
-// Purpose            : The client will establish a connection using the TCP/IP reading the 
-//                      IP and port from a config file.
+// DESCRIPTION        : Client establishes a TCP connection to the server, sends FILESIZE + data,
+//                      receives an ack after each message. Multiple clients run concurrently via Tasks.
+//
 using System;
 using System.Configuration;
-using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace A01___TASKS
 {
-
     internal class ClientConnector
     {
-
-
-        public void RunAsync()
+        public async Task RunAsync()
         {
-            int clientCount = int.Parse(
-                ConfigurationManager.AppSettings["ClientCount"]
-            );
+            int clientCount = int.Parse(ConfigurationManager.AppSettings["ClientCount"] ?? "1");
+            int messageLength = int.Parse(ConfigurationManager.AppSettings["MessageLength"] ?? "12");
 
-            int messageLength = int.Parse(
-                ConfigurationManager.AppSettings["MessageLength"]
-            );
-            string ipaddress = ConfigurationManager.AppSettings["Ipaddress"];
-            string port = ConfigurationManager.AppSettings["Port"];
-            string sizeDoc = ConfigurationManager.AppSettings["size"];
-            Console.WriteLine("ClientCount = " + clientCount);
-            Console.WriteLine("MessageLength = " + messageLength);
-            ClientConnector clientConnector = new ClientConnector();
-            TcpClient client =clientConnector.ClientConnectorServer(ipaddress, port, sizeDoc);
-            if(client == null)
+            string ipAddress = ConfigurationManager.AppSettings["Ipaddress"] ?? "127.0.0.1";
+            string port = ConfigurationManager.AppSettings["Port"] ?? "14000";
+            string sizeDoc = ConfigurationManager.AppSettings["size"] ?? "0";
+
+            Task[] tasks = new Task[clientCount];
+
+            for (int i = 0; i < clientCount; i++)
             {
-                Console.WriteLine("Failed to connect to server.");
-                return;
+                int clientId = i + 1;
+                tasks[i] = RunSingleClientAsync(clientId, ipAddress, port, sizeDoc, messageLength);
             }
 
-            try
-            {
-                // Run multiple tasks that may throw exceptions
-                Task task = Task.WhenAll(
-                    Task.Run(() => clientConnector.SendOnce(client, $"FILESIZE {sizeDoc}")),
-                    Task.Run(() => clientConnector.receiveMessage(client))
-
-
-
-                );
-
-                // Wait for all tasks to complete (exceptions will be aggregated)
-                task.Wait();
-            }
-            catch (AggregateException aggEx)
-            {
-                Console.WriteLine("AggregateException caught. Processing inner exceptions...\n");
-
-                // Handle each exception individually
-                aggEx.Handle(ex =>
-                {
-                    if (ex is ArgumentNullException)
-                    {
-                        Console.WriteLine($"Handled ArgumentNullException: {ex.Message}");
-                        return true; // Mark as handled
-                    }
-                    else if (ex is ArgumentOutOfRangeException)
-                    {
-                        Console.WriteLine($"Handled ArgumentOutOfRangeException: {ex.Message}");
-                        return true;
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Unhandled exception type: {ex.GetType().Name} - {ex.Message}");
-                        return false; // Not handled, will be rethrown
-                    }
-                });
-            }
+            await Task.WhenAll(tasks);
         }
 
-
-        public TcpClient ClientConnectorServer(string ipAddress, string port, string messageBeenSend)
+        private async Task RunSingleClientAsync(int clientId, string ipAddress, string port, string sizeDoc, int messageLength)
         {
+            TcpClient? client = null;
 
-            NetworkStream stream = null;
-            IPAddress iPAddress = IPAddress.Parse(ipAddress);
-            int portInt = int.Parse(port);
-
-            byte[] data = Encoding.UTF8.GetBytes(messageBeenSend);
             try
             {
-                TcpClient client = new TcpClient();
-                client.Connect(iPAddress, portInt);
-                //this was where to create the stream can be write and recipte the message
-                stream = client.GetStream();
-                return client;
+                client = await ConnectToServerAsync(ipAddress, port);
+
+                if (client == null)
+                {
+                    Console.WriteLine($"[Client {clientId}] Failed to connect.");
+                    return;
+                }
+
+                // 1) Send FILESIZE
+                string fileSizeMsg = $"FILESIZE {sizeDoc}";
+                await SendOnceAsync(client, fileSizeMsg);
+                string ack1 = await ReceiveOnceAsync(client);
+                Console.WriteLine($"[Client {clientId}] Sent: {fileSizeMsg} | Server: {ack1}");
+
+                // 2) Send DATA
+                string dataMsg = RandomString(messageLength);
+                await SendOnceAsync(client, dataMsg);
+                string ack2 = await ReceiveOnceAsync(client);
+                Console.WriteLine($"[Client {clientId}] Sent data ({dataMsg.Length} bytes) | Server: {ack2}");
+
+                // Optional: end this connection politely (server must handle it)
+                await SendOnceAsync(client, "STOP");
+                string ack3 = await ReceiveOnceAsync(client);
+                Console.WriteLine($"[Client {clientId}] Sent STOP | Server: {ack3}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex);
+                Console.WriteLine($"[Client {clientId}] Error: {ex.Message}");
             }
-            return null;
+            finally
+            {
+                client?.Close();
+            }
         }
 
-        public bool receiveMessage(TcpClient client)
+        private async Task<TcpClient?> ConnectToServerAsync(string ipAddress, string port)
         {
-            bool continueReceive = true;
-            NetworkStream stream = null;
-            byte[] receiveData = new byte[4096];
-            stream = client.GetStream();
-            int bytesRead = stream.Read(receiveData, 0, receiveData.Length);
-            string response = Encoding.ASCII.GetString(receiveData, 0, bytesRead);
-            if (response.Contains("Stop") ){
-                continueReceive= false; 
-            };
-            return continueReceive;
-            
+            try
+            {
+                IPAddress ip = IPAddress.Parse(ipAddress);
+                int portInt = int.Parse(port);
 
- 
-
+                TcpClient client = new TcpClient();
+                await client.ConnectAsync(ip, portInt);
+                return client;
+            }
+            catch
+            {
+                return null;
+            }
         }
-        public bool SendOnce(TcpClient client, string msg)
+
+        private async Task SendOnceAsync(TcpClient client, string msg)
         {
             NetworkStream stream = client.GetStream();
             byte[] data = Encoding.UTF8.GetBytes(msg);
-            stream.Write(data, 0, data.Length);
-            return true; 
+            await stream.WriteAsync(data, 0, data.Length);
         }
-        public string RandomString(int length)
+
+        private async Task<string> ReceiveOnceAsync(TcpClient client)
         {
-;           
+            NetworkStream stream = client.GetStream();
+            byte[] buffer = new byte[4096];
+
+            int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
+            if (bytesRead <= 0) return "";
+
+            return Encoding.UTF8.GetString(buffer, 0, bytesRead);
+        }
+
+        private string RandomString(int length)
+        {
             if (length < 0)
             {
-                throw new ArgumentOutOfRangeException("length was error must big than 0");
-                    
-            };
-
-            string stringSen = "";
-            for (int i = 0; i < length; i++)
-            {
-                stringSen = stringSen + 'c';
+                throw new ArgumentOutOfRangeException(nameof(length), "Length must be >= 0");
             }
-            return stringSen;
+
+            return new string('c', length);
         }
-
     }
-
 }

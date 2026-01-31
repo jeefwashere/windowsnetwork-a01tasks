@@ -19,10 +19,10 @@ namespace A01___TASKS
 {
     internal class MessageProcessor
     {
+        private static readonly object fileLocker = new object();
         public async Task<bool> CheckFile(string message, string filePath, string logFileName, double maxFileSize)
         {
             FileIO fileIO = new FileIO();
-
             bool fileSizeReached = false;
 
             if (string.IsNullOrEmpty(filePath))
@@ -35,8 +35,15 @@ namespace A01___TASKS
                 logFileName = "logger.log";
             }
 
+            
+            if (!File.Exists(filePath))
+            {
+                File.WriteAllText(filePath, "");
+            }
+
             FileInfo fileInfo = new FileInfo(filePath);
-            if (fileInfo.Length >= maxFileSize)
+
+            if (maxFileSize > 0 && fileInfo.Length >= maxFileSize)
             {
                 fileSizeReached = true;
             }
