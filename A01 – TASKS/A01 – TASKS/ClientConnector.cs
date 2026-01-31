@@ -17,6 +17,7 @@ namespace A01___TASKS
 {
     internal class ClientConnector
     {
+        MessageSender sender = new MessageSender();
         public async Task RunAsync()
         {
             int clientCount = int.Parse(ConfigurationManager.AppSettings["ClientCount"] ?? "1");
@@ -53,19 +54,19 @@ namespace A01___TASKS
 
                 // 1) Send FILESIZE
                 string fileSizeMsg = $"FILESIZE {sizeDoc}";
-                await SendOnceAsync(client, fileSizeMsg);
-                string ack1 = await ReceiveOnceAsync(client);
+                await sender.SendAsync(client, fileSizeMsg);
+                string ack1 = await sender.ReceiveAsync(client);
                 Console.WriteLine($"[Client {clientId}] Sent: {fileSizeMsg} | Server: {ack1}");
 
                 // 2) Send DATA
                 string dataMsg = RandomString(messageLength);
-                await SendOnceAsync(client, dataMsg);
-                string ack2 = await ReceiveOnceAsync(client);
+                await sender.SendAsync(client, dataMsg);
+                string ack2 = await sender.ReceiveAsync(client);
                 Console.WriteLine($"[Client {clientId}] Sent data ({dataMsg.Length} bytes) | Server: {ack2}");
 
                 // Optional: end this connection politely (server must handle it)
-                await SendOnceAsync(client, "STOP");
-                string ack3 = await ReceiveOnceAsync(client);
+                await sender.SendAsync(client, "STOP");
+                string ack3 = await sender.ReceiveAsync(client);
                 Console.WriteLine($"[Client {clientId}] Sent STOP | Server: {ack3}");
             }
             catch (Exception ex)
@@ -93,24 +94,6 @@ namespace A01___TASKS
             {
                 return null;
             }
-        }
-
-        private async Task SendOnceAsync(TcpClient client, string msg)
-        {
-            NetworkStream stream = client.GetStream();
-            byte[] data = Encoding.UTF8.GetBytes(msg);
-            await stream.WriteAsync(data, 0, data.Length);
-        }
-
-        private async Task<string> ReceiveOnceAsync(TcpClient client)
-        {
-            NetworkStream stream = client.GetStream();
-            byte[] buffer = new byte[4096];
-
-            int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
-            if (bytesRead <= 0) return "";
-
-            return Encoding.UTF8.GetString(buffer, 0, bytesRead);
         }
 
         private string RandomString(int length)

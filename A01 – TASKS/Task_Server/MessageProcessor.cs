@@ -34,26 +34,36 @@ namespace A01___TASKS
             {
                 logFileName = "logger.log";
             }
-
-            
-            if (!File.Exists(filePath))
+            lock (fileLocker)
             {
-                File.WriteAllText(filePath, "");
-            }
+                // Ensure file exists (prevents FileNotFoundException)
+                if (!File.Exists(filePath))
+                {
+                    using (FileStream fs = new FileStream(
+                        filePath,
+                        FileMode.OpenOrCreate,
+                        FileAccess.Write,
+                        FileShare.ReadWrite))
+                    {
+                        // create then close
+                    }
+                }
 
-            FileInfo fileInfo = new FileInfo(filePath);
+                FileInfo fileInfo = new FileInfo(filePath);
 
-            if (maxFileSize > 0 && fileInfo.Length >= maxFileSize)
-            {
-                fileSizeReached = true;
-            }
-            else
-            {
-                await fileIO.WriteToFileAsync(fileInfo.FullName, message);
-                await Logger.WriteLoggerAsync($"Message Received: {message}", logFileName);
-            }
-
+                if (maxFileSize > 0 && fileInfo.Length >= maxFileSize)
+                {
+                    fileSizeReached = true;
+                }
+                else
+                {
+                    
+                    fileIO.WriteToFileAsync(fileInfo.FullName, message).GetAwaiter().GetResult();
+                    Logger.WriteLoggerAsync($"Message Received: {message}", logFileName).GetAwaiter().GetResult();
+                }
+            } 
             return fileSizeReached;
         }
+
     }
 }
