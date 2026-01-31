@@ -8,7 +8,7 @@
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
-
+using System.IO;
 namespace A01___TASKS
 {
     internal class MessageSender
@@ -16,6 +16,13 @@ namespace A01___TASKS
         public async Task SendAsync(TcpClient client, string message)
         {
             NetworkStream stream = client.GetStream();
+
+ 
+            if (!message.EndsWith("\n"))
+            {
+                message += "\n";
+            }
+
             byte[] data = Encoding.UTF8.GetBytes(message);
             await stream.WriteAsync(data, 0, data.Length);
         }
@@ -26,14 +33,24 @@ namespace A01___TASKS
             byte[] buffer = new byte[4096];
             string result = string.Empty;
 
-            int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
-
-            if (bytesRead > 0)
+            while (true)
             {
-                result = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
+                if (bytesRead == 0)
+                {
+                    throw new IOException("Remote closed the connection.");
+                }
+
+                result += Encoding.UTF8.GetString(buffer, 0, bytesRead);
+
+                if (result.Contains("\n"))
+                {
+                    break; // got at least one full message
+                }
             }
 
-            return result;
+
+            return result.Split('\n')[0].Trim();
         }
     }
 }
