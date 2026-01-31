@@ -3,16 +3,11 @@
 // PROJECT            : A01 - TASKS
 // PROGRAMMER		  : Josiah Williams, Ricardo Gao, Jeff David Tieng
 // FIRST VERSION      : 2025-01-28
-// DESCRIPTION        : This file where the messages are processed using the task aysncrhonously
-// 
-// Name               : MessageProcessor.cs            
-// Purpose            : Task are created to write to the file asynchronously
-using System;
-using System.Collections.Generic;
-using System.Linq;
+// DESCRIPTION        : Processes messages and writes to file safely (thread-safe using lock).
+//
+using System.IO;
 using System.Text;
 using System.Threading.Tasks;
-using System.IO;
 using Task_Server;
 
 namespace A01___TASKS
@@ -20,7 +15,8 @@ namespace A01___TASKS
     internal class MessageProcessor
     {
         private static readonly object fileLocker = new object();
-        public async Task<bool> CheckFile(string message, string filePath, string logFileName, double maxFileSize)
+
+        public Task<bool> CheckFile(string message, string filePath, string logFileName, double maxFileSize)
         {
             FileIO fileIO = new FileIO();
             bool fileSizeReached = false;
@@ -34,9 +30,9 @@ namespace A01___TASKS
             {
                 logFileName = "logger.log";
             }
+
             lock (fileLocker)
             {
-                // Ensure file exists (prevents FileNotFoundException)
                 if (!File.Exists(filePath))
                 {
                     using (FileStream fs = new FileStream(
@@ -45,25 +41,26 @@ namespace A01___TASKS
                         FileAccess.Write,
                         FileShare.ReadWrite))
                     {
-                        // create then close
                     }
                 }
 
                 FileInfo fileInfo = new FileInfo(filePath);
 
-                if (maxFileSize > 0 && fileInfo.Length >= maxFileSize)
+                long messageBytes = Encoding.UTF8.GetByteCount(message);
+                long projectedSize = fileInfo.Length + messageBytes;
+
+                if (maxFileSize > 0 && projectedSize > (long)maxFileSize)
                 {
                     fileSizeReached = true;
                 }
                 else
                 {
-                    
                     fileIO.WriteToFileAsync(fileInfo.FullName, message).GetAwaiter().GetResult();
-                    Logger.WriteLoggerAsync($"Message Received: {message}", logFileName).GetAwaiter().GetResult();
+                    Logger.WriteLoggerAsync("Message Received: " + message, logFileName).GetAwaiter().GetResult();
                 }
-            } 
-            return fileSizeReached;
-        }
+            }
 
+            return Task.FromResult(fileSizeReached);
+        }
     }
 }

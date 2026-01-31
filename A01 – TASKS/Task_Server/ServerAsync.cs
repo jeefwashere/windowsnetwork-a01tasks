@@ -1,21 +1,18 @@
 ﻿//
-// FILE               : Server.cs
+// FILE               : ServerAsync.cs
 // PROJECT            : A01 - TASKS
 // PROGRAMMER		  : Josiah Williams, Ricardo Gao, Jeff David Tieng
 // FIRST VERSION      : 2025-01-28
-// DESCRIPTION        : This file is where the server establish a connection to the client
-// 
-// Name               : Server            
-// Purpose            : The server will establish a connection to the client using the TCP/IP reading the 
-//                      IP and port from a config file.
+// DESCRIPTION        : Server accepts clients and processes messages over TCP.
+//                      Sends "ack" normally; sends "FULL" when output file limit reached.
+//
 using A01___TASKS;
 using System;
-using System.Collections.Generic;
 using System.Configuration;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Task_Server
@@ -33,7 +30,6 @@ namespace Task_Server
 
         public async Task RunAsync(CancellationToken cancellationToken)
         {
-            
             GetConfigInfo();
             await GetClientConnectionAsync(cancellationToken);
         }
@@ -41,37 +37,33 @@ namespace Task_Server
         public void GetConfigInfo()
         {
             string address = ConfigurationManager.AppSettings["IPAddress"] ?? "127.0.0.1";
-            validIP = validator.ValidateIp(address); //happy path works 
-
-            if (validIP == null)
-            {
-                // log invalid IP address
-                // Throw exception maybe?
-            }
+            validIP = validator.ValidateIp(address);
 
             validPort = validator.ValudatePort();
             if (validPort == KInvalidPort)
             {
-                //logger invalidport
+                // logger invalid port
             }
+
             validServerFileName = ConfigurationManager.AppSettings["ServerFileName"] ?? string.Empty;
             validLoggerName = ConfigurationManager.AppSettings["LoggerFileName"] ?? string.Empty;
 
-            Console.WriteLine($"[SERVER CONFIG] IP={validIP} PORT={validPort}");
+            Console.WriteLine("[SERVER CONFIG] IP=" + validIP + " PORT=" + validPort);
         }
 
         public async Task GetClientConnectionAsync(CancellationToken cancellationToken)
         {
             TcpListener listener = new TcpListener(validIP, validPort);
             listener.Start();
+
             while (!cancellationToken.IsCancellationRequested)
             {
                 try
                 {
-                    //Create a listener client
                     TcpClient client = await listener.AcceptTcpClientAsync(cancellationToken);
-                    Console.WriteLine("[SERVER] Client connected."); 
-                    _ = Task.Run(() => ProcessRequest(client, cancellationToken), cancellationToken); // referenced this maybe
+                    Console.WriteLine("[SERVER] Client connected.");
+
+                    _ = Task.Run(() => ProcessRequest(client, cancellationToken), cancellationToken);
                 }
                 catch (SocketException ex)
                 {
@@ -96,26 +88,21 @@ namespace Task_Server
                 {
                     int count = await stream.ReadAsync(data, 0, data.Length, cancellationToken);
 
-                    // client disconnected
                     if (count == 0)
-                        break;
+                    {
+                        break; // disconnected
+                    }
 
                     string incomingData = Encoding.UTF8.GetString(data, 0, count);
 
-                    // optional stop command (ends this client connection)
+                    // STOP
                     if (incomingData.StartsWith("STOP", StringComparison.OrdinalIgnoreCase))
                     {
-                        await SendAckAsync(stream, cancellationToken);
-                        break;
-                    }
-                    // Handle STOP command
-                    if (incomingData.StartsWith("STOP", StringComparison.OrdinalIgnoreCase))
-                    {
-                        await SendAckAsync(stream, cancellationToken);
+                        await SendResponseAsync(stream, "ack", cancellationToken);
                         break;
                     }
 
-                    // ✅ SAFE FILESIZE parsing (PUT THIS HERE)
+                    // FILESIZE
                     if (incomingData.StartsWith("FILESIZE", StringComparison.OrdinalIgnoreCase))
                     {
                         string[] parts = incomingData.Split(
@@ -143,22 +130,28 @@ namespace Task_Server
                             Console.WriteLine("[SERVER] FILESIZE format invalid: " + incomingData);
                         }
 
-                        await SendAckAsync(stream, cancellationToken);
-                        continue;   
+                        await SendResponseAsync(stream, "ack", cancellationToken);
+                        continue;
                     }
 
-                    // Handle normal data
-                    await processor.CheckFile(incomingData, validServerFileName, validLoggerName, fileSize);
+                    // DATA
+                    bool isFull = await processor.CheckFile(incomingData, validServerFileName, validLoggerName, fileSize);
                     Console.WriteLine("I got this: " + incomingData);
 
-                    await SendAckAsync(stream, cancellationToken);
-
-
+                    if (isFull)
+                    {
+                        await SendResponseAsync(stream, "FULL", cancellationToken);
+                        break; // end connection when full
+                    }
+                    else
+                    {
+                        await SendResponseAsync(stream, "ack", cancellationToken);
+                    }
                 }
             }
             catch (OperationCanceledException)
             {
-                // expected on shutdown
+                // expected
             }
             catch (Exception ex)
             {
@@ -171,11 +164,10 @@ namespace Task_Server
             }
         }
 
-        private static async Task SendAckAsync(NetworkStream stream, CancellationToken token)
+        private static async Task SendResponseAsync(NetworkStream stream, string response, CancellationToken token)
         {
-            byte[] responseBytes = Encoding.UTF8.GetBytes("ack");
+            byte[] responseBytes = Encoding.UTF8.GetBytes(response);
             await stream.WriteAsync(responseBytes, 0, responseBytes.Length, token);
         }
-
     }
 }
