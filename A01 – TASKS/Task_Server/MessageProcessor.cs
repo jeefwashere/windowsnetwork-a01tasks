@@ -45,17 +45,6 @@ namespace A01___TASKS
                     }
                 }
 
-                if (!File.Exists(logFileName))
-                {
-                    using (FileStream fs = new FileStream(
-                        logFileName,
-                        FileMode.OpenOrCreate,
-                        FileAccess.Write,
-                        FileShare.ReadWrite))
-                    {
-                    }
-                }
-
                 FileInfo fileInfo = new FileInfo(filePath);
 
                 long messageBytes = Encoding.UTF8.GetByteCount(message);

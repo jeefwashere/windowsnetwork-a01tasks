@@ -26,6 +26,17 @@ namespace Task_Server
                 logFilePath = "logger.log";
             }
 
+            if (!File.Exists(logFilePath))
+            {
+                using (FileStream fs = new FileStream(
+                    logFilePath,
+                    FileMode.OpenOrCreate,
+                    FileAccess.Write,
+                    FileShare.ReadWrite))
+                {
+                }
+            }
+
             string fullMessage = $"[{DateTime.UtcNow}] | {logMessage}";
 
             await fileIo.WriteToFileAsync(logFilePath, fullMessage);
