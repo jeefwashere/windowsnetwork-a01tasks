@@ -25,9 +25,8 @@ namespace Task_Server
         int KInvalidPort = -1;
         IPAddress validIP;
         int validPort;
-        string validServerFileName;
-        string validLoggerName;
-        double fileSize;
+        string validServerFileName = "";
+        string validLoggerName = "";
         ValidationClass validator = new ValidationClass();
         Parser parser = new Parser();
         MessageProcessor processor = new MessageProcessor();
@@ -70,8 +69,8 @@ namespace Task_Server
                 try
                 {
                     //Create a listener client
-                    TcpClient client = await listener.AcceptTcpClientAsync();
-                    await ProcessRequest(client); // Check if concurrency works
+                    TcpClient client = await listener.AcceptTcpClientAsync(cancellationToken);
+                    await ProcessRequest(client, cancellationToken); // Check if concurrency works
                 }
                 catch (SocketException ex)
                 {
@@ -84,8 +83,9 @@ namespace Task_Server
             }
         }
 
-        public async Task ProcessRequest(TcpClient client)
+        public async Task ProcessRequest(TcpClient client, CancellationToken cancellationToken)
         {
+            double fileSize = 0.0;
             NetworkStream stream = client.GetStream();
 
             // Data buffer
@@ -96,7 +96,7 @@ namespace Task_Server
 
             try
             {
-                count = stream.Read(data, 0, data.Length);
+                count = await stream.ReadAsync(data, 0, data.Length, cancellationToken);
                 if (count > 0)
                 {
                     incomingData = Encoding.ASCII.GetString(data, 0, count);
@@ -115,7 +115,7 @@ namespace Task_Server
                     if (response.Length > 0)
                     {
                         byte[] responseBytes = Encoding.ASCII.GetBytes(response);
-                        stream.Write(responseBytes, 0, responseBytes.Length);
+                        await stream.WriteAsync(responseBytes, 0, responseBytes.Length, cancellationToken);
 
                         //Logger.Log($"Response sent: {response}");
                     }
