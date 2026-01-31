@@ -17,7 +17,7 @@ namespace A01___TASKS
 {
     internal class ClientConnector
     {
-         MessageSender sender = new MessageSender();
+         
 
         public async Task RunAsync()
         {
@@ -26,13 +26,59 @@ namespace A01___TASKS
             string ipAddress = ConfigurationManager.AppSettings["Ipaddress"] ?? "127.0.0.1";
             string port = ConfigurationManager.AppSettings["Port"] ?? "14000";
             string sizeDoc = ConfigurationManager.AppSettings["size"] ?? "0";
+            string cilentNumberString=ConfigurationManager.AppSettings["ClientNumber"] ?? "3";
+            int cilentNumber = int.Parse(cilentNumberString);
+            //   One client per instance
+            
 
-            // ✅ One client per instance
-            await RunSingleClientAsync(1, ipAddress, port, sizeDoc, messageLength);
+            try
+            {
+                CancellationTokenSource token = new CancellationTokenSource();
+                Task[] tasks = new Task[cilentNumber];
+
+                for (int i = 0; i < cilentNumber; i++)
+                {
+                    int clientId = i + 1; // define each client
+                    tasks[i] = RunSingleClientAsync(clientId, ipAddress, port, sizeDoc, messageLength, token);
+                }
+
+                Task.WaitAll(tasks);
+
+
+            }
+            catch (AggregateException aggEx)
+            {
+                Console.WriteLine("AggregateException caught. Inner exceptions:\n");
+
+                aggEx = aggEx.Flatten();
+
+                foreach (Exception ex in aggEx.InnerExceptions)
+                {
+                    
+                    if (ex is SocketException)
+                    {
+                        Console.WriteLine(" SocketException: " + ex.Message);
+                    }
+                    else if (ex is IOException)
+                    {
+                        Console.WriteLine("  IOException: " + ex.Message);
+                    }
+                    else if (ex is OperationCanceledException)
+                    {
+                        Console.WriteLine(" OperationCanceledException: " + ex.Message);
+                    }
+                    else
+                    {
+                        Console.WriteLine(" " + ex.GetType().Name + ": " + ex.Message);
+                    }
+                }
+            }
+
         }
 
-        private async Task RunSingleClientAsync(int clientId, string ipAddress, string port, string sizeDoc, int messageLength)
+        private async Task RunSingleClientAsync(int clientId, string ipAddress, string port, string sizeDoc, int messageLength, CancellationTokenSource token)
         {
+            MessageSender sender = new MessageSender();
             TcpClient client = null;
 
             try
@@ -49,13 +95,14 @@ namespace A01___TASKS
                 string fileSizeMsg = "FILESIZE " + sizeDoc;
                 await sender.SendAsync(client, fileSizeMsg);
                 string ack1 = await sender.ReceiveAsync(client);
+                //do we handle ack make sure?
                 Console.WriteLine("[Client " + clientId + "] Sent: " + fileSizeMsg + " | Server: " + ack1);
 
                 // 2) Keep sending DATA until FULL
-                bool keepSending = true;
+                
                 int sentCount = 0;
 
-                while (keepSending)
+                while (!token.IsCancellationRequested)
                 {
                     string dataMsg = RandomString(messageLength);
 
@@ -67,7 +114,7 @@ namespace A01___TASKS
                     if (response == "FULL")
                     {
                         Console.WriteLine("[Client " + clientId + "] Server says FULL after " + sentCount + " messages. Stopping.");
-                        keepSending = false;
+                        token.Cancel();
                     }
                     else
                     {

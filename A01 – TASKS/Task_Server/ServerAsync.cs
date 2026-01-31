@@ -147,6 +147,10 @@ namespace Task_Server
 
         private static async Task SendResponseAsync(NetworkStream stream, string response, CancellationToken token)
         {
+            if (!response.EndsWith("\n"))
+            {
+                response += "\n";
+            };
             byte[] responseBytes = Encoding.UTF8.GetBytes(response);
             await stream.WriteAsync(responseBytes, 0, responseBytes.Length, token);
         }
