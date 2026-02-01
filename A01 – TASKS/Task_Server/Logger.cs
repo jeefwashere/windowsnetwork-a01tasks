@@ -24,14 +24,9 @@ namespace Task_Server
         /// <param name="logMessage">The message to be logged</param>
         /// <param name="logFilePath">The logfile name</param>
         /// <returns>Task that represent async for the logging</returns>
-        public static async Task WriteLoggerAsync(string logMessage, string logFilePath)
+        public static async Task WriteLoggerAsync(string logMessage, string logFilePath, CancellationToken cancellationToken)
         {
             FileIO fileIo = new FileIO();
-
-            if (string.IsNullOrEmpty(logFilePath))
-            {
-                logFilePath = "logger.log";
-            }
 
             if (!File.Exists(logFilePath))
             {
@@ -46,7 +41,7 @@ namespace Task_Server
 
             string fullMessage = $"[{DateTime.UtcNow}] | {logMessage}";
 
-            await fileIo.WriteToFileAsync(logFilePath, fullMessage);
+            await fileIo.WriteToFileAsync(logFilePath, fullMessage, cancellationToken);
         }
     }
 }

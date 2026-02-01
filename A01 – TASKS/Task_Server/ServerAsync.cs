@@ -75,6 +75,7 @@ namespace Task_Server
             }
 
             validServerFileName = ConfigurationManager.AppSettings["ServerFileName"] ?? string.Empty;
+            validMetricsLoggerName = ConfigurationManager.AppSettings["MetricsFileName"] ?? string.Empty;
             validLoggerName = ConfigurationManager.AppSettings["LoggerFileName"] ?? string.Empty;
             validMetricsLoggerName = ConfigurationManager.AppSettings["MetricsLoggerFileName"] ?? string.Empty;
 
@@ -149,7 +150,7 @@ namespace Task_Server
                         continue;
                     }
 
-                    bool isFull = await processor.CheckFile(incomingData, validServerFileName, validLoggerName, maxFileSize, clientCount, cancellationToken);
+                    bool isFull = await processor.CheckFile(incomingData, validServerFileName, validMetricsLoggerName, validLoggerName, maxFileSize, clientCount, cancellationToken);
                     await Logger.WriteLoggerAsync("[SERVER Received]: " + incomingData, validLoggerName, cancellationToken);
 
                     if (isFull)

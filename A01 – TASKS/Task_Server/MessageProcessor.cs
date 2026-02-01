@@ -35,7 +35,7 @@ namespace A01___TASKS
         /// <param name="logFileName">Log file name</param>
         /// <param name="maxFileSize">max file size for server</param>
         /// <returns>A task that represents writing async to a file</returns>
-        public async Task<bool> CheckFile(string message, string filePath, string logFileName, long maxFileSize, int currentClientCount, CancellationToken cancellationToken)
+        public async Task<bool> CheckFile(string message, string filePath, string metricsLogFileName, string logFileName, long maxFileSize, int currentClientCount, CancellationToken cancellationToken)
         {
             FileIO fileIO = new FileIO();
             bool fileSizeReached = false;
@@ -47,7 +47,12 @@ namespace A01___TASKS
 
             if (string.IsNullOrEmpty(logFileName))
             {
-                logFileName = "logger.log";
+                logFileName = "logger.txt";
+            }
+
+            if (string.IsNullOrEmpty(metricsLogFileName))
+            {
+                metricsLogFileName = "metrics.txt";
             }
 
             await semaphoreSlim.WaitAsync(); // Explored further in the referenced link in the stackoverflow thread: https://blog.cdemi.io/async-waiting-inside-c-sharp-locks/
@@ -86,6 +91,16 @@ namespace A01___TASKS
                     MetricRecord newRecord = new MetricRecord(currentClientCount, Encoding.UTF8.GetByteCount(message), bufferSize, maxFileSize, elapsedTime, DateTime.UtcNow);
 
                     metrics.Record(newRecord);
+
+                    await Logger.WriteLoggerAsync(
+                        @$"[{newRecord.Timestamp}]
+                        Current Client Count:    {newRecord.ClientCount}
+                        Message Size:               {newRecord.MessageSize}
+                        Buffer Size:                {newRecord.BufferSize}
+                        Max File Size:              {newRecord.MaxFileSize}
+                        Write Time:                 {newRecord.WriteTime}",
+                        metricsLogFileName,
+                        cancellationToken);
 
                     await Logger.WriteLoggerAsync("Message Received: " + message, logFileName, cancellationToken);
                 }
