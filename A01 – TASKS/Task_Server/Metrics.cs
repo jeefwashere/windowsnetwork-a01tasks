@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -9,16 +10,16 @@ namespace Task_Server
 {
     internal class Metrics
     {
-        private readonly List<MetricRecord> metricsRecords = new List<MetricRecord>();
+        private readonly ConcurrentBag<MetricRecord> metricsRecords = new ConcurrentBag<MetricRecord>(); // Found the thread-safe collections here: https://learn.microsoft.com/en-us/dotnet/standard/collections/thread-safe/
 
         public void Record(MetricRecord metrics)
         {
             metricsRecords.Add(metrics);
         }
 
-        public ReadOnlyCollection<MetricRecord> GetMetrics()
+        public List<MetricRecord> GetMetrics()
         {
-            return metricsRecords.AsReadOnly(); // Return list as readonly list to make data incorruptible: https://stackoverflow.com/questions/5742726/make-list-immutable
+            return metricsRecords.ToList();
         }
     }
 }
