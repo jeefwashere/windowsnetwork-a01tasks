@@ -135,7 +135,6 @@ namespace Task_Server
                     }
 
                     string incomingData = Encoding.UTF8.GetString(data, 0, messageSize);
-
                     
                     if (incomingData.StartsWith("STOP"))
                     {
