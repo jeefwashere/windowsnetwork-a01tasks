@@ -40,8 +40,14 @@ namespace Task_Server
 
         ValidationClass validator = new ValidationClass();
         Parser parser = new Parser();
-        MessageProcessor processor = new MessageProcessor();
-        Metrics metrics = new Metrics();
+        Metrics metrics;
+        MessageProcessor processor;
+
+        public ServerAsync()
+        {
+            metrics = new Metrics();
+            processor = new MessageProcessor(metrics, BUFFER_SIZE);
+        }
 
         /// <summary>
         /// A method to run the server
@@ -89,7 +95,8 @@ namespace Task_Server
                 try
                 {
                     TcpClient client = await listener.AcceptTcpClientAsync(cancellationToken);
-                    await Logger.WriteLoggerAsync("[SERVER] Client connected", validLoggerName);
+                    Interlocked.Increment(ref clientCount); // Found how to increment a variable asynchronously safely here: https://stackoverflow.com/questions/32832770/increase-a-value-type-from-multiple-async-methods-i-e-threads-in-c-sharp
+                    await Logger.WriteLoggerAsync("[SERVER] Client connected", validLoggerName, cancellationToken);
                     _ = ProcessRequest(client, cancellationToken); //Ignore return task
                 }
 
@@ -134,15 +141,7 @@ namespace Task_Server
                         await SendResponseAsync(stream, "ack\n", cancellationToken);
                         break;
                     }
-
-                    if (incomingData.StartsWith("CLIENTCOUNT"))
-                    {
-                        clientCount = parser.ParseClientCount(incomingData);
-                        await SendResponseAsync(stream, "ack\n", cancellationToken); // Debatable if needed?
-                        continue;
-                    }
-
-                    
+  
                     if (incomingData.StartsWith("FILESIZE"))
                     {
                         maxFileSize = parser.ParseFileSizeMessage(incomingData);
@@ -150,24 +149,7 @@ namespace Task_Server
                         continue;
                     }
 
-                    //if (metricsClientCountValidStart && metricsFileSizeValidStart)
-                    //{
-                    //    _ = metrics.MeasureFileWriteTime(
-                    //            clientCount,
-                    //            messageSize,
-                    //            BUFFER_SIZE,
-                    //            Stopwatch.StartNew(),
-                    //            validServerFileName,
-                    //            maxFileSize,
-                    //            validLoggerName,
-                    //            cancellationToken
-                    //        );
-
-                    //    metricsClientCountValidStart = false;
-                    //    metricsFileSizeValidStart = false;
-                    //}
-
-                    bool isFull = await processor.CheckFile(incomingData, validServerFileName, validLoggerName, maxFileSize);
+                    bool isFull = await processor.CheckFile(incomingData, validServerFileName, validLoggerName, maxFileSize, clientCount, cancellationToken);
                     await Logger.WriteLoggerAsync("[SERVER Received]: " + incomingData, validLoggerName, cancellationToken);
 
                     if (isFull)
@@ -191,6 +173,7 @@ namespace Task_Server
             }
             finally
             {
+                Interlocked.Decrement(ref clientCount);
                 stream.Close();
                 client.Close();
             }

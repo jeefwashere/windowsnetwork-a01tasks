@@ -18,6 +18,15 @@ namespace A01___TASKS
     internal class MessageProcessor
     {
         private static SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1); // Found this on: https://stackoverflow.com/questions/20084695/lock-and-async-method-in-c-sharp
+        private readonly Metrics metrics;
+        private readonly int bufferSize;
+
+        public MessageProcessor(Metrics metrics, int bufferSize)
+        {
+            this.metrics = metrics;
+            this.bufferSize = bufferSize;
+        }
+
         /// <summary>
         /// A method to write to check file and write to file
         /// </summary>
@@ -26,7 +35,7 @@ namespace A01___TASKS
         /// <param name="logFileName">Log file name</param>
         /// <param name="maxFileSize">max file size for server</param>
         /// <returns>A task that represents writing async to a file</returns>
-        public async Task<bool> CheckFile(string message, string filePath, string logFileName, long maxFileSize)
+        public async Task<bool> CheckFile(string message, string filePath, string logFileName, long maxFileSize, int currentClientCount, CancellationToken cancellationToken)
         {
             FileIO fileIO = new FileIO();
             bool fileSizeReached = false;
@@ -72,13 +81,18 @@ namespace A01___TASKS
                 }
                 else
                 {
-                    await fileIO.WriteToFileAsync(fileInfo.FullName, message);
-                    await Logger.WriteLoggerAsync("Message Received: " + message, logFileName);
+                    long elapsedTime = await fileIO.WriteToFileAsync(fileInfo.FullName, message,cancellationToken);
+
+                    MetricRecord newRecord = new MetricRecord(currentClientCount, Encoding.UTF8.GetByteCount(message), bufferSize, maxFileSize, elapsedTime, DateTime.UtcNow);
+
+                    metrics.Record(newRecord);
+
+                    await Logger.WriteLoggerAsync("Message Received: " + message, logFileName, cancellationToken);
                 }
             }
             catch (Exception ex)
             {
-                await Logger.WriteLoggerAsync("Exceotuib Received: " + ex, logFileName);
+                await Logger.WriteLoggerAsync("Exceotuib Received: " + ex, logFileName, cancellationToken);
             }
             finally
             {

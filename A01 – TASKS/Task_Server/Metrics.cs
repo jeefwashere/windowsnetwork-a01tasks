@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,36 +9,16 @@ namespace Task_Server
 {
     internal class Metrics
     {
-        // Wrote this function to measure time
-        public async Task MeasureFileWriteTime(int clientCount, int messageSize, int bufferSize, Stopwatch totalWriteTime, string filePath, long maxFileSize, string logFilePath)
+        private readonly List<MetricRecord> metricsRecords = new List<MetricRecord>();
+
+        public void Record(MetricRecord metrics)
         {
-            bool sizeReached = false;
-            totalWriteTime.Restart();
+            metricsRecords.Add(metrics);
+        }
 
-            if (string.IsNullOrEmpty(logFilePath))
-            {
-                logFilePath = "metrics.txt";
-            }
-
-            while (!sizeReached)
-            {
-                FileInfo fileInfo = new FileInfo(filePath);
-                if (fileInfo.Exists && fileInfo.Length >= maxFileSize)
-                {
-                    sizeReached = true;
-                }
-
-                await Task.Delay(10);
-            }
-
-            totalWriteTime.Stop();
-            await Logger.WriteLoggerAsync(
-                @$"[{DateTime.UtcNow}]
-                Clients: {clientCount}
-                TimeMs: {totalWriteTime.ElapsedMilliseconds}
-                Max File Size: {maxFileSize}
-                Message Size: {messageSize}
-                Buffer Size: {bufferSize}", logFilePath);
+        public ReadOnlyCollection<MetricRecord> GetMetrics()
+        {
+            return metricsRecords.AsReadOnly(); // Return list as readonly list to make data incorruptible: https://stackoverflow.com/questions/5742726/make-list-immutable
         }
     }
 }
