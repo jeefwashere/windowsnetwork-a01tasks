@@ -13,6 +13,7 @@
 using A01___TASKS;
 using System;
 using System.Configuration;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -32,6 +33,13 @@ namespace Task_Server
         ValidationClass validator = new ValidationClass();
         Parser parser = new Parser();
         MessageProcessor processor = new MessageProcessor();
+        Metrics metrics = new Metrics();
+        const int BUFFER_SIZE = 4096;
+        int clientCount = 0;
+        long maxFileSize = 0;
+        int messageSize = 0;
+        bool metricsClientCountValidStart = false;
+        bool metricsFileSizeValidStart = false;
 
         /// <summary>
         /// A method to run the server
@@ -101,22 +109,21 @@ namespace Task_Server
         /// <returns>Task that represent async to process request</returns>
         public async Task ProcessRequest(TcpClient client, CancellationToken cancellationToken)
         {
-            long fileSize = 0;
             NetworkStream stream = client.GetStream();
-            byte[] data = new byte[4096];
+            byte[] data = new byte[BUFFER_SIZE];
 
             try
             {
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    int count = await stream.ReadAsync(data, 0, data.Length, cancellationToken);
+                    messageSize = await stream.ReadAsync(data, 0, data.Length, cancellationToken);
 
-                    if (count == 0) // client disconnected no clients
+                    if (messageSize == 0) // client disconnected no clients
                     {
                         break; 
                     }
 
-                    string incomingData = Encoding.UTF8.GetString(data, 0, count);
+                    string incomingData = Encoding.UTF8.GetString(data, 0, messageSize);
 
                     
                     if (incomingData.StartsWith("STOP"))
@@ -125,21 +132,47 @@ namespace Task_Server
                         break;
                     }
 
+                    if (incomingData.StartsWith("CLIENTCOUNT"))
+                    {
+                        clientCount = parser.ParseClientCount(incomingData);
+                        if (clientCount > 0)
+                        {
+                            metricsClientCountValidStart = true;
+                        }
+                        await SendResponseAsync(stream, "ack\n", cancellationToken); // Debatable if needed?
+                        break;
+                    }
+
                     
                     if (incomingData.StartsWith("FILESIZE"))
                     {
-                        fileSize = parser.ParseFileSizeMessage(incomingData);
-                        //if (fileSize <= 0)
-                        //{
-                        //    await SendResponseAsync(stream, "err", cancellationToken);
-                        //    continue;
-                        //} 
+                        maxFileSize = parser.ParseFileSizeMessage(incomingData);
+                        if (maxFileSize > 0)
+                        {
+                            metricsFileSizeValidStart = true;
+                        }
                         await SendResponseAsync(stream, "ack\n", cancellationToken);
                         continue;
                     }
 
-                    bool isFull = await processor.CheckFile(incomingData, validServerFileName, validLoggerName, fileSize);
-                    await Logger.WriteLoggerAsync("[SERVER Recieved]: " + incomingData, validLoggerName);
+                    if (metricsClientCountValidStart && metricsFileSizeValidStart)
+                    {
+                        _ = metrics.MeasureFileWriteTime(
+                                clientCount,
+                                messageSize,
+                                BUFFER_SIZE,
+                                Stopwatch.StartNew(),
+                                validServerFileName,
+                                maxFileSize,
+                                validLoggerName
+                            );
+
+                        metricsClientCountValidStart = false;
+                        metricsFileSizeValidStart = false;
+                    }
+
+                    bool isFull = await processor.CheckFile(incomingData, validServerFileName, validLoggerName, maxFileSize);
+                    await Logger.WriteLoggerAsync("[SERVER Received]: " + incomingData, validLoggerName);
 
                     if (isFull)
                     {

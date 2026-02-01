@@ -66,7 +66,7 @@ namespace Task_Server
 
             if (parts.Length == 2)
             {
-                if (int.TryParse(parts[1],out int parsedCount))
+                if (int.TryParse(parts[1],out int parsedCount) && parsedCount > 0)
                 {
                     clientCount = parsedCount;
                     Console.WriteLine("[SERVER] Parsed client count = " + parsedCount);
