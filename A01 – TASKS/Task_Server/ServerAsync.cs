@@ -16,6 +16,7 @@ using System.Configuration;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -140,7 +141,7 @@ namespace Task_Server
                             metricsClientCountValidStart = true;
                         }
                         await SendResponseAsync(stream, "ack\n", cancellationToken); // Debatable if needed?
-                        break;
+                        continue;
                     }
 
                     
