@@ -17,7 +17,7 @@ namespace Task_Server
 
             if (string.IsNullOrEmpty(logFilePath))
             {
-                logFilePath = "metrics.log";
+                logFilePath = "metrics.txt";
             }
 
             while (!sizeReached)
@@ -33,7 +33,7 @@ namespace Task_Server
 
             totalWriteTime.Stop();
             await Logger.WriteLoggerAsync(
-                @$"[TIME TO WRITE TO MAX FILE SIZE]
+                @$"[{DateTime.UtcNow}]
                 Clients: {clientCount}
                 TimeMs: {totalWriteTime.ElapsedMilliseconds}
                 Max File Size: {maxFileSize}
