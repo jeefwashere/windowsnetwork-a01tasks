@@ -94,7 +94,7 @@ namespace A01___TASKS
 
                     await Logger.WriteLoggerAsync(
                         @$"[{newRecord.Timestamp}]
-                        Current Client Count:    {newRecord.ClientCount}
+                        Current Client Count:       {newRecord.ClientCount}
                         Message Size:               {newRecord.MessageSize}
                         Buffer Size:                {newRecord.BufferSize}
                         Max File Size:              {newRecord.MaxFileSize}
