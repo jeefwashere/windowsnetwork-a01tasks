@@ -7,6 +7,7 @@
 // 
 // Name               : Logger.cs            
 // Purpose            : logs any messages recived, measurements and error messages
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,6 +18,12 @@ namespace Task_Server
 {
     public class Logger
     {
+        /// <summary>
+        /// A method to log any server information
+        /// </summary>
+        /// <param name="logMessage">The message to be logged</param>
+        /// <param name="logFilePath">The logfile name</param>
+        /// <returns>Task that represent async for the logging</returns>
         public static async Task WriteLoggerAsync(string logMessage, string logFilePath)
         {
             FileIO fileIo = new FileIO();

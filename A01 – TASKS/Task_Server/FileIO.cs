@@ -19,6 +19,12 @@ namespace Task_Server
 {
     internal class FileIO
     {
+        /// <summary>
+        /// A class to write to the contents to a file
+        /// </summary>
+        /// <param name="path">File path</param>
+        /// <param name="content">The content to writen</param>
+        /// <returns>Task that represent async to write to file</returns>
         public async Task WriteToFileAsync(string path, string content)
         {
             await File.AppendAllTextAsync(path, content);

@@ -5,6 +5,9 @@
 // FIRST VERSION      : 2025-01-28
 // DESCRIPTION        : Processes messages and writes to file safely (thread-safe using lock).
 //
+// Name               : MessageProcessor.cs            
+// Purpose            : Processor message and using aysnc tasks to write to a file 
+
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
@@ -15,7 +18,14 @@ namespace A01___TASKS
     internal class MessageProcessor
     {
         private static SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1); // Found this on: https://stackoverflow.com/questions/20084695/lock-and-async-method-in-c-sharp
-
+        /// <summary>
+        /// A method to write to check file and write to file
+        /// </summary>
+        /// <param name="message">Message to be written</param>
+        /// <param name="filePath">File path to be written to</param>
+        /// <param name="logFileName">Log file name</param>
+        /// <param name="maxFileSize">max file size for server</param>
+        /// <returns>A task that represents writing async to a file</returns>
         public async Task<bool> CheckFile(string message, string filePath, string logFileName, long maxFileSize)
         {
             FileIO fileIO = new FileIO();
@@ -43,9 +53,15 @@ namespace A01___TASKS
                         FileShare.ReadWrite))
                     {
                     }
-                }
+                } 
+               
 
-                FileInfo fileInfo = new FileInfo(filePath);
+                 FileInfo fileInfo = new FileInfo(filePath);
+
+                if(File.Exists(filePath) &&  fileInfo.Length >= maxFileSize )
+                {
+                    await File.WriteAllTextAsync(fileInfo.FullName, string.Empty);
+                }
 
                 long messageBytes = Encoding.UTF8.GetByteCount(message);
                 long projectedSize = fileInfo.Length + messageBytes;
@@ -62,7 +78,7 @@ namespace A01___TASKS
             }
             catch (Exception ex)
             {
-                // log it
+                await Logger.WriteLoggerAsync("Exceotuib Received: " + ex, logFileName);
             }
             finally
             {

@@ -1,13 +1,12 @@
 ﻿//
-// FILE               : Server.cs
+// FILE               : MainProgramServer.cs
 // PROJECT            : A01 - TASKS
 // PROGRAMMER		  : Josiah Williams, Ricardo Gao, Jeff David Tieng
 // FIRST VERSION      : 2025-01-28
-// DESCRIPTION        : This file is where the server establish a connection to the client
+// DESCRIPTION        : This file is the server starts running
 // 
-// Name               : Server            
-// Purpose            : The server will establish a connection to the client using the TCP/IP reading the 
-//                      IP and port from a config file.
+// Name               : MainProgramServer            
+// Purpose            : The enrty point for the server to run
 
 using System;
 using System.Configuration;
@@ -22,7 +21,7 @@ namespace Task_Server
         {
             using CancellationTokenSource cts = new CancellationTokenSource();
 
-            Console.CancelKeyPress += (sender, e) =>
+            Console.CancelKeyPress += (sender, e) => //Might change
             {
                 e.Cancel = true;
                 cts.Cancel();

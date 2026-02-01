@@ -1,4 +1,13 @@
-﻿using System;
+﻿//
+// FILE               : Parser.cs
+// PROJECT            : A01 - TASKS
+// PROGRAMMER		  : Josiah Williams, Ricardo Gao, Jeff David Tieng
+// FIRST VERSION      : 2025-01-28
+// DESCRIPTION        : This file is where messages are parsed for file size
+// 
+// Name               : Parser.cs            
+// Purpose            : Parser messages based on the are messaing protocols to get filesize
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -10,6 +19,11 @@ namespace Task_Server
 {
     internal class Parser
     {
+        /// <summary>
+        /// A method to parse the incoming data to get file sizxe
+        /// </summary>
+        /// <param name="incomingData">Mesasge to be parsed</param>
+        /// <returns>file size</returns>
         public long ParseFileSizeMessage(string incomingData)
         {
             long fileSize = 0;

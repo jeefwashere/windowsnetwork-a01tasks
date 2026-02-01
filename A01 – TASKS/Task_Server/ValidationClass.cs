@@ -1,4 +1,14 @@
-﻿using System;
+﻿//
+// FILE               : ValdiationClass.cs
+// PROJECT            : A01 - TASKS
+// PROGRAMMER		  : Josiah Williams, Ricardo Gao, Jeff David Tieng
+// FIRST VERSION      : 2025-01-28
+// DESCRIPTION        : This file is where the validation for the app config settings are done
+//
+//
+// Name               : ValdiationClass.cs            
+// Purpose            : The class ip, port, and any file names are validated
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
@@ -9,10 +19,16 @@ using System.Threading.Tasks;
 
 namespace Task_Server
 {
+    
     internal class ValidationClass
     {
         public bool IsValidAddress = true;
-        int KInvalidPort = -1;
+        const int KInvalidPort = -1;
+        /// <summary>
+        /// A method to validate IP
+        /// </summary>
+        /// <param name="ip">Ip to be validated</param>
+        /// <returns>The valid Ip address</returns>
         public IPAddress? ValidateIp(string? ip)
         {
             if (string.IsNullOrWhiteSpace(ip))
@@ -27,18 +43,16 @@ namespace Task_Server
                 IsValidAddress = false;
             }
 
-            // IPv4 only (remove this if IPv6 is allowed)
-            if (parsed.AddressFamily != AddressFamily.InterNetwork)
-            {
-                IsValidAddress = false;
-            }
-
             if(!IsValidAddress)
             {
                 parsed = null;
             }
             return parsed;
         }
+        /// <summary>
+        /// A method to valid the port number
+        /// </summary>
+        /// <returns>The validated port</returns>
         public int ValudatePort()
         {
             int port;
@@ -55,6 +69,11 @@ namespace Task_Server
 
             return port;
         }
+        /// <summary>
+        /// A method to validat the a file name
+        /// </summary>
+        /// <param name="fileName">the file naem to be validated</param>
+        /// <returns>The validated name</returns>
         public string CheckFileName(string fileName)
         {
             
