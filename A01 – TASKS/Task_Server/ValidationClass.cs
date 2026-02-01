@@ -61,7 +61,7 @@ namespace Task_Server
                 port = KInvalidPort;
                 
             }
-            if(port < 0 || port  > 656350)
+            if(port < 0 || port  > 65535)
             {
                 port = KInvalidPort;
             }

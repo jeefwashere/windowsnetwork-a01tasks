@@ -14,6 +14,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
+using System.Diagnostics;
 
 namespace Task_Server
 {
@@ -25,9 +26,14 @@ namespace Task_Server
         /// <param name="path">File path</param>
         /// <param name="content">The content to writen</param>
         /// <returns>Task that represent async to write to file</returns>
-        public async Task WriteToFileAsync(string path, string content)
+        public async Task<long> WriteToFileAsync(string path, string content, CancellationToken cancellationToken)
         {
-            await File.AppendAllTextAsync(path, content);
+            Stopwatch stopwatch = Stopwatch.StartNew();
+
+            await File.AppendAllTextAsync(path, content, cancellationToken);
+
+            stopwatch.Stop();
+            return stopwatch.ElapsedMilliseconds;
         }
     }
 }

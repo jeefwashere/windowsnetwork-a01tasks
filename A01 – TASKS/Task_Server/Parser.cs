@@ -22,8 +22,8 @@ namespace Task_Server
         /// <summary>
         /// A method to parse the incoming data to get file sizxe
         /// </summary>
-        /// <param name="incomingData">Mesasge to be parsed</param>
-        /// <returns>file size</returns>
+        /// <param name="incomingData">Message to be parsed</param>
+        /// <returns>File size</returns>
         public long ParseFileSizeMessage(string incomingData)
         {
             long fileSize = 0;
@@ -55,6 +55,11 @@ namespace Task_Server
             return fileSize;
         }
 
+        /// <summary>
+        /// A method to parse the incoming client count message from a client
+        /// </summary>
+        /// <param name="incomingData">Message to be parsed</param>
+        /// <returns>Client count number</returns>
         public int ParseClientCount(string incomingData)
         {
             int clientCount = 0;

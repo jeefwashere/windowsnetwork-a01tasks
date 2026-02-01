@@ -38,9 +38,6 @@ namespace Task_Server
         long maxFileSize = 0;
         int messageSize = 0;
 
-        bool metricsClientCountValidStart = false;
-        bool metricsFileSizeValidStart = false;
-
         ValidationClass validator = new ValidationClass();
         Parser parser = new Parser();
         MessageProcessor processor = new MessageProcessor();
@@ -53,14 +50,14 @@ namespace Task_Server
         /// <returns> Task that represent async start  the server</returns>
         public async Task RunAsync(CancellationToken cancellationToken)
         {
-            await GetConfigInfo(); //Get Info from app config
+            await GetConfigInfo(cancellationToken); //Get Info from app config
             await ClientConnectionAsync(cancellationToken);
         }
         /// <summary>
         /// A method to get the config info and assing it to the class varibales
         /// </summary>
         /// <returns>Task that represent async getting appconfig</returns>
-        public async Task GetConfigInfo()
+        public async Task GetConfigInfo(CancellationToken cancellationToken)
         {
             string address = ConfigurationManager.AppSettings["IPAddress"] ?? "127.0.0.1";
             validIP = validator.ValidateIp(address);
@@ -68,14 +65,14 @@ namespace Task_Server
             validPort = validator.ValudatePort();
             if (validPort == KInvalidPort)
             {
-                await Logger.WriteLoggerAsync("[SERVER CONFIG] Invalid port detected.", validLoggerName);
+                await Logger.WriteLoggerAsync("[SERVER CONFIG] Invalid port detected.", validLoggerName, cancellationToken);
             }
 
             validServerFileName = ConfigurationManager.AppSettings["ServerFileName"] ?? string.Empty;
             validLoggerName = ConfigurationManager.AppSettings["LoggerFileName"] ?? string.Empty;
             validMetricsLoggerName = ConfigurationManager.AppSettings["MetricsLoggerFileName"] ?? string.Empty;
 
-            await Logger.WriteLoggerAsync("[SERVER CONFIG] IP=" + validIP + " PORT=" + validPort,validLoggerName);
+            await Logger.WriteLoggerAsync("[SERVER CONFIG] IP=" + validIP + " PORT=" + validPort,validLoggerName, cancellationToken);
         }
         /// <summary>
         /// A method to get the connected to the clients and start processing the messages
@@ -98,11 +95,11 @@ namespace Task_Server
 
                 catch (SocketException ex)
                 {
-                    await Logger.WriteLoggerAsync("[SERVER] Socket Exception: " + ex, validLoggerName);
+                    await Logger.WriteLoggerAsync("[SERVER] Socket Exception: " + ex, validLoggerName, cancellationToken);
                 }
                 catch (Exception ex)
                 {
-                    await Logger.WriteLoggerAsync("[SERVER] Accept error: " + ex, validLoggerName);
+                    await Logger.WriteLoggerAsync("[SERVER] Accept error: " + ex, validLoggerName, cancellationToken);
                 }
             }
         }
@@ -141,10 +138,6 @@ namespace Task_Server
                     if (incomingData.StartsWith("CLIENTCOUNT"))
                     {
                         clientCount = parser.ParseClientCount(incomingData);
-                        if (clientCount > 0)
-                        {
-                            metricsClientCountValidStart = true;
-                        }
                         await SendResponseAsync(stream, "ack\n", cancellationToken); // Debatable if needed?
                         continue;
                     }
@@ -153,32 +146,29 @@ namespace Task_Server
                     if (incomingData.StartsWith("FILESIZE"))
                     {
                         maxFileSize = parser.ParseFileSizeMessage(incomingData);
-                        if (maxFileSize > 0)
-                        {
-                            metricsFileSizeValidStart = true;
-                        }
                         await SendResponseAsync(stream, "ack\n", cancellationToken);
                         continue;
                     }
 
-                    if (metricsClientCountValidStart && metricsFileSizeValidStart)
-                    {
-                        _ = metrics.MeasureFileWriteTime(
-                                clientCount,
-                                messageSize,
-                                BUFFER_SIZE,
-                                Stopwatch.StartNew(),
-                                validServerFileName,
-                                maxFileSize,
-                                validLoggerName
-                            );
+                    //if (metricsClientCountValidStart && metricsFileSizeValidStart)
+                    //{
+                    //    _ = metrics.MeasureFileWriteTime(
+                    //            clientCount,
+                    //            messageSize,
+                    //            BUFFER_SIZE,
+                    //            Stopwatch.StartNew(),
+                    //            validServerFileName,
+                    //            maxFileSize,
+                    //            validLoggerName,
+                    //            cancellationToken
+                    //        );
 
-                        metricsClientCountValidStart = false;
-                        metricsFileSizeValidStart = false;
-                    }
+                    //    metricsClientCountValidStart = false;
+                    //    metricsFileSizeValidStart = false;
+                    //}
 
                     bool isFull = await processor.CheckFile(incomingData, validServerFileName, validLoggerName, maxFileSize);
-                    await Logger.WriteLoggerAsync("[SERVER Received]: " + incomingData, validLoggerName);
+                    await Logger.WriteLoggerAsync("[SERVER Received]: " + incomingData, validLoggerName, cancellationToken);
 
                     if (isFull)
                     {
@@ -193,11 +183,11 @@ namespace Task_Server
             }
             catch (OperationCanceledException ex)
             {
-                await Logger.WriteLoggerAsync("[SERVER] Cancelation: " + ex, validLoggerName);
+                await Logger.WriteLoggerAsync("[SERVER] Cancelation: " + ex, validLoggerName, cancellationToken);
             }
             catch (Exception ex)
             {
-                await Logger.WriteLoggerAsync("[SERVER] Error: " + ex, validLoggerName);
+                await Logger.WriteLoggerAsync("[SERVER] Error: " + ex, validLoggerName, cancellationToken);
             }
             finally
             {
