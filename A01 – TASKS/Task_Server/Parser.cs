@@ -54,5 +54,35 @@ namespace Task_Server
 
             return fileSize;
         }
+
+        public int ParseClientCount(string incomingData)
+        {
+            int clientCount = 0;
+            string[] parts = incomingData.Split(
+                            new char[] { ' ', ':', '=' },
+                            StringSplitOptions.RemoveEmptyEntries
+                        );
+
+
+            if (parts.Length == 2)
+            {
+                if (int.TryParse(parts[1],out int parsedCount) && parsedCount > 0)
+                {
+                    clientCount = parsedCount;
+                    Console.WriteLine("[SERVER] Parsed client count = " + parsedCount);
+                }   
+                else
+                {
+                    Console.WriteLine("[SERVER] Client count parse failed: " + parsedCount);
+                    clientCount = -1;
+                }
+            }
+            else
+            {
+                Console.WriteLine("[SERVER] Client count format invalid: " + incomingData);
+            }
+
+            return clientCount;
+        }
     }
 }
