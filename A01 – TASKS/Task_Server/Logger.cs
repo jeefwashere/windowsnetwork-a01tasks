@@ -18,6 +18,7 @@ namespace Task_Server
 {
     public class Logger
     {
+        private static SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1); // Found this on: https://stackoverflow.com/questions/20084695/lock-and-async-method-in-c-sharp
         /// <summary>
         /// A method to log any server information
         /// </summary>
@@ -28,20 +29,22 @@ namespace Task_Server
         {
             FileIO fileIo = new FileIO();
 
-            if (!File.Exists(logFilePath))
+            await semaphoreSlim.WaitAsync().ConfigureAwait(false);
+            try
             {
-                using (FileStream fs = new FileStream(
+                string fullMessage =
+                    $"[{DateTime.UtcNow}] | {logMessage}{Environment.NewLine}";
+
+                // Let the write operation create the file if it doesn't exist
+                await fileIo.WriteToFileAsync(
                     logFilePath,
-                    FileMode.OpenOrCreate,
-                    FileAccess.Write,
-                    FileShare.ReadWrite))
-                {
-                }
+                    fullMessage,
+                    CancellationToken.None); // logging should not be cancelable
             }
-
-            string fullMessage = $"[{DateTime.UtcNow}] | {logMessage}";
-
-            await fileIo.WriteToFileAsync(logFilePath, fullMessage, cancellationToken);
+            finally
+            {
+                semaphoreSlim.Release();
+            }
         }
     }
 }

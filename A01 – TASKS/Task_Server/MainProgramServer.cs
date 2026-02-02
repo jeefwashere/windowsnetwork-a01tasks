@@ -19,11 +19,11 @@ namespace Task_Server
         
         static async Task Main(string[] args)
         {
-            using CancellationTokenSource cts = new CancellationTokenSource();
+            using CancellationTokenSource cts = new CancellationTokenSource(); 
 
-            Console.CancelKeyPress += (sender, e) => //Might change
+            Console.CancelKeyPress += (sender, eventArgs) => // Reference:  https://stackoverflow.com/questions/48222797/capturing-cancelkeypress-to-stop-an-async-console-app-at-a-safe-point
             {
-                e.Cancel = true;
+                eventArgs.Cancel = true;
                 cts.Cancel();
             };
 

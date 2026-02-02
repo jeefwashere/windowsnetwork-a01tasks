@@ -24,7 +24,7 @@ namespace Task_Server
         /// </summary>
         /// <param name="incomingData">Message to be parsed</param>
         /// <returns>File size</returns>
-        public long ParseFileSizeMessage(string incomingData)
+        public async Task<long> ParseFileSizeMessage(string incomingData, string logFileName, CancellationToken cancellationToken)
         {
             long fileSize = 0;
             string[] parts = incomingData.Split(
@@ -39,55 +39,20 @@ namespace Task_Server
                 if (long.TryParse(parts[1], out parsedSize))
                 {
                     fileSize = parsedSize;
-                    Console.WriteLine("[SERVER] Parsed fileSize = " + fileSize);
+                    await Logger.WriteLoggerAsync("[SERVER] Parsed fileSize = " + fileSize, logFileName, cancellationToken);
                 }
                 else
                 {
-                    Console.WriteLine("[SERVER] FILESIZE parse failed: " + incomingData);
+                    await Logger.WriteLoggerAsync("[SERVER] FILESIZE parse failed: " + incomingData, logFileName, cancellationToken);
                     fileSize = -1;
                 }
             }
             else
             {
-                Console.WriteLine("[SERVER] FILESIZE format invalid: " + incomingData);
+                await Logger.WriteLoggerAsync("[SERVER] FILESIZE format invalid: " + incomingData, logFileName, cancellationToken);
             }
 
             return fileSize;
-        }
-
-        /// <summary>
-        /// A method to parse the incoming client count message from a client
-        /// </summary>
-        /// <param name="incomingData">Message to be parsed</param>
-        /// <returns>Client count number</returns>
-        public int ParseClientCount(string incomingData)
-        {
-            int clientCount = 0;
-            string[] parts = incomingData.Split(
-                            new char[] { ' ', ':', '=' },
-                            StringSplitOptions.RemoveEmptyEntries
-                        );
-
-
-            if (parts.Length == 2)
-            {
-                if (int.TryParse(parts[1],out int parsedCount) && parsedCount > 0)
-                {
-                    clientCount = parsedCount;
-                    Console.WriteLine("[SERVER] Parsed client count = " + parsedCount);
-                }   
-                else
-                {
-                    Console.WriteLine("[SERVER] Client count parse failed: " + parsedCount);
-                    clientCount = -1;
-                }
-            }
-            else
-            {
-                Console.WriteLine("[SERVER] Client count format invalid: " + incomingData);
-            }
-
-            return clientCount;
         }
     }
 }

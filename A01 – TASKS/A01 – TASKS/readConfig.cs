@@ -12,14 +12,14 @@ using System.Threading.Tasks;
 //
 namespace A01___TASKS
 {
-    internal class readConfig
+    internal class ReadConfig
     {
 
-        public int messageLength;
-        public string ipAddress;
-        public string port;
-        public string sizeDoc;
-        public int cilentNumber;
+        public int messageLength { get; set; }
+        public string ipAddress { get; set; }
+        public string port { get; set; }
+        public string sizeDoc { get; set; }
+        public int cilentNumber { get; set; }
         /// <summary>
         /// this is the method for read argument from the app config and write into the varible 
         /// </summary>

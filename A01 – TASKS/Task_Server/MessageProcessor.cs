@@ -69,7 +69,6 @@ namespace A01___TASKS
                     }
                 } 
                
-
                  FileInfo fileInfo = new FileInfo(filePath);
 
                 if(File.Exists(filePath) &&  fileInfo.Length >= maxFileSize )

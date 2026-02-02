@@ -24,29 +24,26 @@ namespace A01___TASKS
         /// <returns></returns>
         public async Task RunAsync()
         {
-            readConfig readConfig = new readConfig();
+            ReadConfig readConfig = new ReadConfig();
+            readConfig.reConfig();
             int messageLength = readConfig.messageLength;
             string ipAddress = readConfig.ipAddress;
             string port = readConfig.port;
             string sizeDoc = readConfig.sizeDoc;
             int cilentNumber = readConfig.cilentNumber;
             //   One client per instance
-            
+
+            CancellationTokenSource token = new CancellationTokenSource();
+            Task[] tasks = new Task[cilentNumber];
+            for (int i = 0; i < cilentNumber; i++)
+            {
+                int clientId = i + 1; // define each client
+                tasks[i] = RunSingleClientAsync(clientId, ipAddress, port, sizeDoc, messageLength, token);
+            }
 
             try
             {//create token to track
-                CancellationTokenSource token = new CancellationTokenSource();
-                Task[] tasks = new Task[cilentNumber];
-
-                for (int i = 0; i < cilentNumber; i++)
-                {
-                    int clientId = i + 1; // define each client
-                    tasks[i] = RunSingleClientAsync(clientId, ipAddress, port, sizeDoc, messageLength, token);
-                }
-
-                Task.WaitAll(tasks);// wait task finish
-
-
+                await Task.WhenAll(tasks);// wait task finish
             }
             catch (AggregateException aggEx)
             {// error handle

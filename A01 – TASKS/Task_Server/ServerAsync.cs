@@ -98,9 +98,12 @@ namespace Task_Server
                     TcpClient client = await listener.AcceptTcpClientAsync(cancellationToken);
                     Interlocked.Increment(ref clientCount); // Found how to increment a variable asynchronously safely here: https://stackoverflow.com/questions/32832770/increase-a-value-type-from-multiple-async-methods-i-e-threads-in-c-sharp
                     await Logger.WriteLoggerAsync("[SERVER] Client connected", validLoggerName, cancellationToken);
-                    _ = ProcessRequest(client, cancellationToken); //Ignore return task
+                    _ = Task.Run(() => ProcessRequest(client, cancellationToken), cancellationToken); //Ignore return task
                 }
-
+                catch (IOException ex)
+                {
+                    await Logger.WriteLoggerAsync("[SERVER] Socket Exception: " + ex, validLoggerName, cancellationToken);
+                }
                 catch (SocketException ex)
                 {
                     await Logger.WriteLoggerAsync("[SERVER] Socket Exception: " + ex, validLoggerName, cancellationToken);
@@ -144,7 +147,7 @@ namespace Task_Server
   
                     if (incomingData.StartsWith("FILESIZE"))
                     {
-                        maxFileSize = parser.ParseFileSizeMessage(incomingData);
+                        maxFileSize = await parser.ParseFileSizeMessage(incomingData, validLoggerName, cancellationToken);
                         await SendResponseAsync(stream, "ack\n", cancellationToken);
                         continue;
                     }
@@ -174,8 +177,8 @@ namespace Task_Server
             finally
             {
                 Interlocked.Decrement(ref clientCount);
-                stream.Close();
-                client.Close();
+                stream.Dispose();
+                client.Dispose();
             }
         }
         /// <summary>
