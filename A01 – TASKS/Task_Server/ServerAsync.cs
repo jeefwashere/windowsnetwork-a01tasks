@@ -35,7 +35,6 @@ namespace Task_Server
         
         const int BUFFER_SIZE = 4096;
         int clientCount = 0;
-        long maxFileSize = 0;
         int messageSize = 0;
 
         ValidationClass validator = new ValidationClass();
@@ -90,6 +89,7 @@ namespace Task_Server
         {
             TcpListener listener = new TcpListener(validIP, validPort);
             listener.Start();
+            Stopwatch totalWriteTimer = Stopwatch.StartNew();
 
             while (!cancellationToken.IsCancellationRequested)
             {
@@ -99,6 +99,7 @@ namespace Task_Server
                     Interlocked.Increment(ref clientCount); // Found how to increment a variable asynchronously safely here: https://stackoverflow.com/questions/32832770/increase-a-value-type-from-multiple-async-methods-i-e-threads-in-c-sharp
                     await Logger.WriteLoggerAsync("[SERVER] Client connected", validLoggerName, cancellationToken);
                     _ = Task.Run(() => ProcessRequest(client, cancellationToken), cancellationToken); //Ignore return task
+                    totalWriteTimer.Stop();
                 }
                 catch (IOException ex)
                 {
@@ -125,6 +126,7 @@ namespace Task_Server
         {
             NetworkStream stream = client.GetStream();
             byte[] data = new byte[BUFFER_SIZE];
+            long maxFileSize = 0;
 
             try
             {
@@ -138,12 +140,6 @@ namespace Task_Server
                     }
 
                     string incomingData = Encoding.UTF8.GetString(data, 0, messageSize);
-                    
-                    if (incomingData.StartsWith("STOP"))
-                    {
-                        await SendResponseAsync(stream, "ack\n", cancellationToken);
-                        break;
-                    }
   
                     if (incomingData.StartsWith("FILESIZE"))
                     {

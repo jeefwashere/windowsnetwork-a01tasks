@@ -20,13 +20,13 @@ namespace Task_Server
     internal class MetricRecord
     {
         public int ClientCount { get; set; }
-        public int MessageSize { get; set; }
+        public long MessageSize { get; set; }
         public int BufferSize { get; set; }
         public long MaxFileSize { get; set; }
         public long WriteTime {  get; set; }
         public DateTime Timestamp {  get; set; }
 
-        public MetricRecord(int clientCount, int messageSize, int bufferSize, long maxFileSize, long writeLatencyMs, DateTime timestamp)
+        public MetricRecord(int clientCount, long messageSize, int bufferSize, long maxFileSize, long writeLatencyMs, DateTime timestamp)
         {
             ClientCount = clientCount;
             MessageSize = messageSize;

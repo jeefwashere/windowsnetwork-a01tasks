@@ -121,19 +121,15 @@ namespace A01___TASKS
 
                     if (response == "FULL")
                     {//if the server return back say full
-                        Console.WriteLine("[Client " + clientId + "] Server says FULL after " + sentCount + " messages. Stopping.");
+                        // Console.WriteLine("[Client " + clientId + "] Server says FULL after " + sentCount + " messages. Stopping.");
                         token.Cancel();
+                        break;
                     }
                     else
                     {
                         Console.WriteLine("[Client " + clientId + "] Sent #" + sentCount + " (" + dataMsg.Length + " bytes) | Server: " + response);
                     }
                 }
-
-                ////strop it 
-                await sender.SendAsync(client, "STOP");
-                string ackStop = await sender.ReceiveAsync(client);
-                Console.WriteLine("[Client " + clientId + "] Sent STOP | Server: " + ackStop);
             }
             catch (Exception ex)
             {

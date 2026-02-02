@@ -39,29 +39,35 @@ namespace A01___TASKS
         /// <exception cref="IOException"></exception>
         public async Task<string> ReceiveAsync(TcpClient client)
         {
-            NetworkStream stream = client.GetStream();
-            byte[] buffer = new byte[4096];
             string result = string.Empty;
-            //get the strea to read
-            while (true)
-            {   // read them
-                int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
-                if (bytesRead == 0)
-                {//no message
-                    throw new IOException("Remote closed the connection.");
-                }
-                // this to test did we read to the end
-                result += Encoding.UTF8.GetString(buffer, 0, bytesRead);
+            try
+            {
+                NetworkStream stream = client.GetStream();
+                byte[] buffer = new byte[4096];
+                //get the strea to read
+                while (true)
+                {   // read them
+                    int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
+                    if (bytesRead == 0)
+                    {//no message
+                        throw new IOException("Remote closed the connection.");
+                    }
+                    // this to test did we read to the end
+                    result += Encoding.UTF8.GetString(buffer, 0, bytesRead);
 
-                if (result.Contains("\n"))
-                {
-                    break; // got at least one full message
+                    if (result.Contains("\n"))
+                    {
+                        break; // got at least one full message
+                    }
+                    //write into console
+                    Console.WriteLine($"RESULT: {result}");
+                    Console.WriteLine($"RECEVIED: {bytesRead}");
                 }
-                //write into console
-                Console.WriteLine($"RESULT: {result}");
-                Console.WriteLine($"RECEVIED: {bytesRead}");
             }
-
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error: " + ex.Message);
+            }
             //split [0] means the part before \n and trim to remove space
             return result.Split('\n')[0].Trim();
         }
