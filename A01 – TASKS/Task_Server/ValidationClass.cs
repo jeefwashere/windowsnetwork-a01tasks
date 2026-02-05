@@ -24,6 +24,7 @@ namespace Task_Server
     {
         public bool IsValidAddress = true;
         const int KInvalidPort = -1;
+        const int KInvalidBuffer = -1;
         /// <summary>
         /// A method to validate IP
         /// </summary>
@@ -68,6 +69,21 @@ namespace Task_Server
 
 
             return port;
+        }
+
+        public int ValidateBufferSize()
+        {
+            int bufferSize;
+            if (!int.TryParse(ConfigurationManager.AppSettings["BufferSize"], out bufferSize))
+            {
+                bufferSize = KInvalidBuffer;
+            }
+            if (bufferSize < 0)
+            {
+                bufferSize = KInvalidBuffer;
+            }
+
+            return bufferSize;
         }
         /// <summary>
         /// A method to validat the a file name

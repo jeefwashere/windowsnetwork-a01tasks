@@ -33,7 +33,6 @@ namespace Task_Server
         string validLoggerName = "";
         string validMetricsLoggerName = "";
         
-        const int BUFFER_SIZE = 4096;
         int clientCount = 0;
         int messageSize = 0;
 
@@ -41,11 +40,13 @@ namespace Task_Server
         Parser parser = new Parser();
         Metrics metrics;
         MessageProcessor processor;
+        int validBufferSize = 0;
 
         public ServerAsync()
         {
+            validBufferSize = validator.ValidateBufferSize();
             metrics = new Metrics();
-            processor = new MessageProcessor(metrics, BUFFER_SIZE);
+            processor = new MessageProcessor(metrics, validBufferSize);
         }
 
         /// <summary>
@@ -125,7 +126,7 @@ namespace Task_Server
         public async Task ProcessRequest(TcpClient client, CancellationToken cancellationToken)
         {
             NetworkStream stream = client.GetStream();
-            byte[] data = new byte[BUFFER_SIZE];
+            byte[] data = new byte[validBufferSize];
             long maxFileSize = 0;
 
             try

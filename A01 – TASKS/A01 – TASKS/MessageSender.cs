@@ -34,7 +34,7 @@ namespace A01___TASKS
         /// <summary>
         /// this is for recfeive  message from server
         /// </summary>
-        /// <param name="client">client we recivce</param>
+        /// <param name="client">client we receivce</param>
         /// <returns></returns>
         /// <exception cref="IOException"></exception>
         public async Task<string> ReceiveAsync(TcpClient client)
@@ -61,7 +61,7 @@ namespace A01___TASKS
                     }
                     //write into console
                     Console.WriteLine($"RESULT: {result}");
-                    Console.WriteLine($"RECEVIED: {bytesRead}");
+                    Console.WriteLine($"RECEIVED: {bytesRead}");
                 }
             }
             catch (Exception ex)
